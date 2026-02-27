@@ -4,7 +4,9 @@ import { ChangeEvent, useMemo, useState } from 'react';
 import {
   buildCourseState,
   buildWorkbook,
+  CourseModule,
   CourseState,
+  CourseVideo,
   normalizeProject,
   renderCoursePlanMarkdown,
   renderWorkbookMarkdown,
@@ -149,7 +151,7 @@ export function PassPrepApp() {
 
   function updateModuleTitle(moduleIndex: number, title: string) {
     if (!courseState) return;
-    const modules = courseState.modules.map((module, index) =>
+    const modules = courseState.modules.map((module: CourseModule, index: number) =>
       index === moduleIndex ? { ...module, title } : module
     );
     setCourseState(markUnapproved({ ...courseState, modules }));
@@ -162,11 +164,13 @@ export function PassPrepApp() {
     value: string
   ) {
     if (!courseState) return;
-    const modules = courseState.modules.map((module, mIdx) => {
+    const modules = courseState.modules.map((module: CourseModule, mIdx: number) => {
       if (mIdx !== moduleIndex) return module;
       return {
         ...module,
-        videos: module.videos.map((video, vIdx) => (vIdx === videoIndex ? { ...video, [field]: value } : video))
+        videos: module.videos.map((video: CourseVideo, vIdx: number) =>
+          vIdx === videoIndex ? { ...video, [field]: value } : video
+        )
       };
     });
     setCourseState(markUnapproved({ ...courseState, modules }));
@@ -174,7 +178,7 @@ export function PassPrepApp() {
 
   function moveVideoToModule(moduleIndex: number, videoIndex: number, nextModuleIndex: number) {
     if (!courseState || moduleIndex === nextModuleIndex) return;
-    const modules = courseState.modules.map((module) => ({ ...module, videos: [...module.videos] }));
+    const modules = courseState.modules.map((module: CourseModule) => ({ ...module, videos: [...module.videos] }));
     const [moved] = modules[moduleIndex].videos.splice(videoIndex, 1);
     modules[nextModuleIndex].videos.push(moved);
     setCourseState(markUnapproved({ ...courseState, modules }));
@@ -247,7 +251,7 @@ export function PassPrepApp() {
               <h4>Warnings</h4>
               {validationReport.warnings.length > 0 ? (
                 <ul>
-                  {validationReport.warnings.map((warning) => (
+                  {validationReport.warnings.map((warning: string) => (
                     <li key={warning}>{warning}</li>
                   ))}
                 </ul>
@@ -326,7 +330,7 @@ export function PassPrepApp() {
         <h2>3–4) Course Plan Review &amp; Edit</h2>
         {courseState ? (
           <div className="review-area">
-            {courseState.modules.map((module, moduleIndex) => (
+            {courseState.modules.map((module: CourseModule, moduleIndex: number) => (
               <div key={module.id} className="module">
                 <label>
                   Module title
@@ -336,7 +340,7 @@ export function PassPrepApp() {
                   <button onClick={() => moveModule(moduleIndex, -1)}>Move Up</button>
                   <button onClick={() => moveModule(moduleIndex, 1)}>Move Down</button>
                 </div>
-                {module.videos.map((video, videoIndex) => (
+                {module.videos.map((video: CourseVideo, videoIndex: number) => (
                   <div className="video" key={`${video.videoId}-${videoIndex}`}>
                     <p>
                       <strong>Source:</strong> {video.sourceTitle}
@@ -362,7 +366,7 @@ export function PassPrepApp() {
                         value={moduleIndex}
                         onChange={(event) => moveVideoToModule(moduleIndex, videoIndex, Number(event.target.value))}
                       >
-                        {courseState.modules.map((courseModule, idx) => (
+                        {courseState.modules.map((courseModule: CourseModule, idx: number) => (
                           <option value={idx} key={courseModule.id}>
                             {courseModule.title}
                           </option>

@@ -12,6 +12,7 @@ import {
   validateProject,
   ValidationReport
 } from '@/lib/passprep/core';
+import { PipelineStage, RunRecord } from '@/lib/passprep/run-model';
 
 const defaultSettings: Settings = {
   moduleCount: 4,
@@ -27,8 +28,9 @@ export function PassPrepApp() {
   const [uploadedProject, setUploadedProject] = useState<ReturnType<typeof normalizeProject> | null>(null);
   const [courseState, setCourseState] = useState<CourseState | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [run, setRun] = useState<RunRecord | null>(null);
 
-  const canGeneratePlan = Boolean(validationReport?.valid && uploadedProject);
+  const canGeneratePlan = Boolean(validationReport?.valid && uploadedProject && run);
 
   const workbookStatus = useMemo(() => {
     if (!courseState) return '';
@@ -41,14 +43,60 @@ export function PassPrepApp() {
     return 'Workbook not generated yet.';
   }, [courseState]);
 
+  async function createRunRequest(currentSettings: Settings): Promise<RunRecord> {
+    const response = await fetch('/api/runs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ settings: currentSettings })
+    });
+    if (!response.ok) throw new Error('Unable to create run');
+    return (await response.json()) as RunRecord;
+  }
+
+  async function advanceStage(runId: string, stage: PipelineStage, payload: Record<string, unknown>) {
+    const response = await fetch(`/api/runs/${runId}/stages`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stage, ...payload })
+    });
+    if (!response.ok) {
+      const body = (await response.json().catch(() => ({}))) as { error?: string };
+      throw new Error(body.error ?? `Unable to advance stage ${stage}`);
+    }
+
+    const nextRun = (await response.json()) as RunRecord;
+    setRun(nextRun);
+    return nextRun;
+  }
+
   async function handleUpload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    const nextRun = await createRunRequest(settings);
+    setRun(nextRun);
+
     try {
       const text = await file.text();
-      const parsed = normalizeProject(JSON.parse(text) as Record<string, unknown>);
+      const raw = JSON.parse(text) as Record<string, unknown>;
+
+      await advanceStage(nextRun.id, 'upload-received', {
+        message: 'Upload received in UI',
+        artifacts: { sourceUpload: raw },
+        audit: { durationMs: 0, tokenInput: 0, tokenOutput: 0, estimatedCostUsd: 0 }
+      });
+
+      const parsed = normalizeProject(raw);
+      await advanceStage(nextRun.id, 'normalized', {
+        artifacts: { normalizedProject: parsed },
+        audit: { durationMs: 0, tokenInput: 0, tokenOutput: 0, estimatedCostUsd: 0 }
+      });
+
       const report = validateProject(parsed);
+      await advanceStage(nextRun.id, 'validated', {
+        artifacts: { validationReport: report },
+        audit: { durationMs: 0, tokenInput: 0, tokenOutput: 0, estimatedCostUsd: 0 }
+      });
 
       setUploadError(null);
       setUploadedProject(parsed);
@@ -60,12 +108,25 @@ export function PassPrepApp() {
       setUploadedProject(null);
       setValidationReport(null);
       setCourseState(null);
+      await advanceStage(nextRun.id, 'upload-received', {
+        status: 'failed',
+        message: 'Upload parse failed',
+        error: { message, details: 'Could not parse JSON upload', retriable: true },
+        audit: { durationMs: 0, tokenInput: 0, tokenOutput: 0, estimatedCostUsd: 0 }
+      });
     }
   }
 
-  function generatePlan() {
-    if (!uploadedProject) return;
-    setCourseState(buildCourseState(uploadedProject, settings));
+  async function generatePlan() {
+    if (!uploadedProject || !run) return;
+    const nextCourseState = buildCourseState(uploadedProject, settings);
+    setCourseState(nextCourseState);
+    await advanceStage(run.id, 'plan-generated', {
+      settings,
+      courseState: nextCourseState,
+      artifacts: { coursePlanMarkdown: renderCoursePlanMarkdown(nextCourseState) },
+      audit: { durationMs: 0, tokenInput: 0, tokenOutput: 0, estimatedCostUsd: 0 }
+    });
   }
 
   function markUnapproved(next: CourseState): CourseState {
@@ -119,17 +180,38 @@ export function PassPrepApp() {
     setCourseState(markUnapproved({ ...courseState, modules }));
   }
 
-  function approvePlan() {
-    if (!courseState) return;
-    setCourseState({ ...courseState, metadata: { ...courseState.metadata, approved: true } });
+  async function approvePlan() {
+    if (!courseState || !run) return;
+    const approved = { ...courseState, metadata: { ...courseState.metadata, approved: true } };
+    setCourseState(approved);
+    await advanceStage(run.id, 'approved', {
+      courseState: approved,
+      artifacts: { coursePlanMarkdown: renderCoursePlanMarkdown(approved) },
+      audit: { durationMs: 0, tokenInput: 0, tokenOutput: 0, estimatedCostUsd: 0 }
+    });
   }
 
-  function generateWorkbookDraft() {
-    if (!courseState?.metadata.approved) return;
-    setCourseState({ ...courseState, workbook: buildWorkbook(courseState) });
+  async function generateWorkbookDraft() {
+    if (!courseState?.metadata.approved || !run) return;
+    const withWorkbook = { ...courseState, workbook: buildWorkbook(courseState) };
+    setCourseState(withWorkbook);
+    await advanceStage(run.id, 'workbook-generated', {
+      courseState: withWorkbook,
+      artifacts: { workbookMarkdown: renderWorkbookMarkdown(withWorkbook) },
+      audit: { durationMs: 0, tokenInput: 0, tokenOutput: 0, estimatedCostUsd: 0 }
+    });
   }
 
-  function exportFile(filename: string, content: string) {
+  async function trackExport(filename: string, type: 'json' | 'markdown') {
+    if (!run) return;
+    const exports = [...(run.artifacts.exports ?? []), { filename, type, createdAt: new Date().toISOString() }];
+    await advanceStage(run.id, 'exported', {
+      artifacts: { exports },
+      audit: { durationMs: 0, tokenInput: 0, tokenOutput: 0, estimatedCostUsd: 0 }
+    });
+  }
+
+  function exportFile(filename: string, content: string, type: 'json' | 'markdown') {
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -137,6 +219,7 @@ export function PassPrepApp() {
     a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+    void trackExport(filename, type);
   }
 
   return (
@@ -145,6 +228,7 @@ export function PassPrepApp() {
       <p className="muted">
         Upload <code>project.json</code>, generate a structured plan, review edits, approve, and export.
       </p>
+      {run ? <p className="muted">Run ID: {run.id}</p> : null}
 
       <section className="card">
         <h2>1) Import &amp; Validate</h2>
@@ -313,19 +397,19 @@ export function PassPrepApp() {
         <div className="actions">
           <button
             disabled={!courseState}
-            onClick={() => courseState && exportFile('course-plan.json', JSON.stringify(courseState, null, 2))}
+            onClick={() => courseState && exportFile('course-plan.json', JSON.stringify(courseState, null, 2), 'json')}
           >
             Export course-plan.json
           </button>
           <button
             disabled={!courseState}
-            onClick={() => courseState && exportFile('course-plan.md', renderCoursePlanMarkdown(courseState))}
+            onClick={() => courseState && exportFile('course-plan.md', renderCoursePlanMarkdown(courseState), 'markdown')}
           >
             Export course-plan.md
           </button>
           <button
             disabled={!courseState?.workbook}
-            onClick={() => courseState && exportFile('workbook-draft.md', renderWorkbookMarkdown(courseState))}
+            onClick={() => courseState && exportFile('workbook-draft.md', renderWorkbookMarkdown(courseState), 'markdown')}
           >
             Export workbook-draft.md
           </button>

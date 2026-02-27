@@ -1,0 +1,81 @@
+:root {
+  font-family: Arial, sans-serif;
+  color: #1f2937;
+  background: #f8fafc;
+}
+
+body {
+  margin: 0;
+}
+
+.container {
+  max-width: 980px;
+  margin: 2rem auto;
+  padding: 0 1rem 3rem;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  margin-bottom: 0.75rem;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+}
+
+input, select, textarea, button {
+  font: inherit;
+  padding: 0.45rem 0.55rem;
+}
+
+button {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #f9fafb;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.summary ul {
+  margin: 0.5rem 0;
+}
+
+.muted {
+  color: #6b7280;
+}
+
+.module {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.video {
+  border-top: 1px dashed #e5e7eb;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}

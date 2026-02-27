@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pass Prep MVP</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <h1>Pass Prep — MVP</h1>
+      <p class="muted">Upload <code>project.json</code>, generate a structured plan, review edits, approve, and export.</p>
+
+      <section class="card">
+        <h2>1) Import & Validate</h2>
+        <input id="fileInput" type="file" accept="application/json,.json" />
+        <div id="validationSummary" class="summary"></div>
+      </section>
+
+      <section class="card">
+        <h2>2) Pre-Flight Settings</h2>
+        <div class="grid">
+          <label>Module count
+            <input id="moduleCount" type="number" min="1" max="20" value="4" />
+          </label>
+          <label>Title style
+            <select id="titleStyle">
+              <option>Clear & Practical</option>
+              <option>Academic</option>
+              <option>Inspirational</option>
+            </select>
+          </label>
+          <label>Description length
+            <select id="descriptionLength">
+              <option>Short</option>
+              <option selected>Medium</option>
+              <option>Long</option>
+            </select>
+          </label>
+          <label>Workbook depth
+            <select id="workbookDepth">
+              <option>Light</option>
+              <option selected>Standard</option>
+              <option>Heavy</option>
+            </select>
+          </label>
+        </div>
+        <label>Project notes
+          <textarea id="projectNotes" rows="3" placeholder="Optional one-time instruction for generation"></textarea>
+        </label>
+        <button id="generatePlanBtn" disabled>Generate Course Plan</button>
+      </section>
+
+      <section class="card">
+        <h2>3–4) Course Plan Review & Edit</h2>
+        <div id="reviewArea" class="review-area muted">Generate a plan to begin review.</div>
+        <div class="actions">
+          <button id="approvePlanBtn" disabled>Approve Plan</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>5) Workbook Draft</h2>
+        <button id="generateWorkbookBtn" disabled>Generate Workbook Draft</button>
+        <div id="workbookStatus" class="muted"></div>
+      </section>
+
+      <section class="card">
+        <h2>6) Export</h2>
+        <div class="actions">
+          <button id="exportJsonBtn" disabled>Export course-plan.json</button>
+          <button id="exportPlanMdBtn" disabled>Export course-plan.md</button>
+          <button id="exportWorkbookMdBtn" disabled>Export workbook-draft.md</button>
+        </div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>

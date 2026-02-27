@@ -1,13 +1,13 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const {
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {
   normalizeProject,
   validateProject,
   buildCourseState,
   buildWorkbook,
   renderCoursePlanMarkdown,
   renderWorkbookMarkdown
-} = require('./core.js');
+} from '@/lib/passprep/core';
 
 test('normalize + validate flags common warnings', () => {
   const project = normalizeProject({
@@ -25,7 +25,13 @@ test('normalize + validate flags common warnings', () => {
 });
 
 test('course state and markdown outputs are generated from structured data', () => {
-  const project = normalizeProject(require('./examples/sample-project.json'));
+  const project = normalizeProject({
+    projectName: 'Sample Leadership Project',
+    videos: [
+      { id: 'v1', title: 'Lead Better', rawText: 'Leadership starts with listening to your team.' },
+      { id: 'v2', title: 'Run Retros', rawText: 'A practical framework for weekly retrospectives.' }
+    ]
+  });
   const state = buildCourseState(project, {
     moduleCount: 2,
     titleStyle: 'Clear & Practical',

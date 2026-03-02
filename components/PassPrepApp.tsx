@@ -38,6 +38,8 @@ export function PassPrepApp() {
   const [uploadedFilename, setUploadedFilename] = useState<string>('');
   const [dragActive, setDragActive] = useState(false);
   const [reviewView, setReviewView] = useState<'list' | 'tile'>('list');
+  const [collapsedModules, setCollapsedModules] = useState<Record<string, boolean>>({});
+  const [draggingVideo, setDraggingVideo] = useState<{ moduleIndex: number; videoIndex: number } | null>(null);
 
   const canGeneratePlan = Boolean(validationReport?.valid && uploadedProject && run);
 
@@ -163,16 +165,6 @@ export function PassPrepApp() {
     };
   }
 
-  function moveModule(index: number, direction: -1 | 1) {
-    if (!courseState) return;
-    const targetIndex = index + direction;
-    if (targetIndex < 0 || targetIndex >= courseState.modules.length) return;
-
-    const modules = [...courseState.modules];
-    [modules[index], modules[targetIndex]] = [modules[targetIndex], modules[index]];
-    setCourseState(markUnapproved({ ...courseState, modules }));
-  }
-
   function updateModuleTitle(moduleIndex: number, title: string) {
     if (!courseState) return;
     const modules = courseState.modules.map((module: CourseModule, index: number) =>
@@ -198,6 +190,41 @@ export function PassPrepApp() {
       };
     });
     setCourseState(markUnapproved({ ...courseState, modules }));
+  }
+
+  function toggleModuleCollapse(moduleId: string) {
+    setCollapsedModules((prev) => ({ ...prev, [moduleId]: !prev[moduleId] }));
+  }
+
+  function moveVideo(
+    sourceModuleIndex: number,
+    sourceVideoIndex: number,
+    targetModuleIndex: number,
+    targetVideoIndex: number
+  ) {
+    if (!courseState) return;
+    if (sourceModuleIndex === targetModuleIndex && sourceVideoIndex === targetVideoIndex) return;
+
+    const modules = [...courseState.modules];
+    const sourceVideos = [...modules[sourceModuleIndex].videos];
+    const [movedVideo] = sourceVideos.splice(sourceVideoIndex, 1);
+    if (!movedVideo) return;
+
+    modules[sourceModuleIndex] = { ...modules[sourceModuleIndex], videos: sourceVideos };
+
+    const targetVideos = [...modules[targetModuleIndex].videos];
+    const nextIndex =
+      sourceModuleIndex === targetModuleIndex && sourceVideoIndex < targetVideoIndex ? targetVideoIndex - 1 : targetVideoIndex;
+    targetVideos.splice(nextIndex, 0, movedVideo);
+    modules[targetModuleIndex] = { ...modules[targetModuleIndex], videos: targetVideos };
+
+    setCourseState(markUnapproved({ ...courseState, modules }));
+  }
+
+  function handleVideoDrop(targetModuleIndex: number, targetVideoIndex: number) {
+    if (!draggingVideo) return;
+    moveVideo(draggingVideo.moduleIndex, draggingVideo.videoIndex, targetModuleIndex, targetVideoIndex);
+    setDraggingVideo(null);
   }
 
 
@@ -383,45 +410,83 @@ export function PassPrepApp() {
 
             {reviewView === 'list' ? (
               <>
-                {courseState.modules.map((module: CourseModule, moduleIndex: number) => (
-                  <details key={module.id} className="module" open>
-                    <summary>
-                      Category {moduleIndex + 1}: {module.title}
-                    </summary>
-                    <label>
-                      Category name
-                      <input value={module.title} onChange={(event) => updateModuleTitle(moduleIndex, event.target.value)} />
-                    </label>
-                    <div className="actions">
-                      <button className="btn" onClick={() => moveModule(moduleIndex, -1)}>
-                        ↑ Move Up
-                      </button>
-                      <button className="btn" onClick={() => moveModule(moduleIndex, 1)}>
-                        ↓ Move Down
-                      </button>
-                    </div>
-                    {module.videos.map((video: CourseVideo, videoIndex: number) => (
-                      <div className="video" key={`${video.videoId}-${videoIndex}`}>
-                        <p className="helper">Source: {video.sourceTitle}</p>
-                        <label>
-                          Title
-                          <input
-                            value={video.generatedTitle}
-                            onChange={(event) => updateVideoField(moduleIndex, videoIndex, 'generatedTitle', event.target.value)}
-                          />
-                        </label>
-                        <label>
-                          Description
-                          <textarea
-                            rows={2}
-                            value={video.generatedDescription}
-                            onChange={(event) => updateVideoField(moduleIndex, videoIndex, 'generatedDescription', event.target.value)}
-                          />
-                        </label>
+                {courseState.modules.map((module: CourseModule, moduleIndex: number) => {
+                  const isCollapsed = collapsedModules[module.id] ?? false;
+                  return (
+                    <section key={module.id} className="module">
+                      <div className="module-header">
+                        <button
+                          className="module-toggle"
+                          type="button"
+                          onClick={() => toggleModuleCollapse(module.id)}
+                          aria-expanded={!isCollapsed}
+                          aria-controls={`module-content-${module.id}`}
+                        >
+                          <span>{isCollapsed ? '▸' : '▾'}</span>
+                          <span>Category {moduleIndex + 1}</span>
+                        </button>
+                        <input
+                          className="module-title-input"
+                          aria-label={`Category ${moduleIndex + 1} name`}
+                          value={module.title}
+                          onChange={(event) => updateModuleTitle(moduleIndex, event.target.value)}
+                        />
                       </div>
-                    ))}
-                  </details>
-                ))}
+                      {!isCollapsed ? (
+                        <div id={`module-content-${module.id}`} className="module-videos">
+                          {module.videos.map((video: CourseVideo, videoIndex: number) => (
+                            <div
+                              className="video-card"
+                              key={`${video.videoId}-${videoIndex}`}
+                              onDragOver={(event) => event.preventDefault()}
+                              onDrop={() => handleVideoDrop(moduleIndex, videoIndex)}
+                            >
+                              <div className="video-main">
+                                <input
+                                  className="video-title-input"
+                                  aria-label="Video title"
+                                  value={video.generatedTitle}
+                                  onChange={(event) =>
+                                    updateVideoField(moduleIndex, videoIndex, 'generatedTitle', event.target.value)
+                                  }
+                                />
+                                <textarea
+                                  className="video-description-input"
+                                  rows={2}
+                                  aria-label="Video description"
+                                  value={video.generatedDescription}
+                                  onChange={(event) =>
+                                    updateVideoField(moduleIndex, videoIndex, 'generatedDescription', event.target.value)
+                                  }
+                                />
+                                <p className="video-source">Source: {video.sourceTitle}</p>
+                              </div>
+                              <button
+                                type="button"
+                                className="drag-handle"
+                                draggable
+                                aria-label="Drag video"
+                                title="Drag to reorder"
+                                onDragStart={() => setDraggingVideo({ moduleIndex, videoIndex })}
+                                onDragEnd={() => setDraggingVideo(null)}
+                              >
+                                ⋮⋮
+                              </button>
+                            </div>
+                          ))}
+                          <div
+                            className="video-dropzone"
+                            onDragOver={(event) => event.preventDefault()}
+                            onDrop={() => handleVideoDrop(moduleIndex, module.videos.length)}
+                            aria-label={`Drop videos into ${module.title}`}
+                          >
+                            Drop here to move to this category
+                          </div>
+                        </div>
+                      ) : null}
+                    </section>
+                  );
+                })}
               </>
             ) : (
               <TilePreview courseState={courseState} />

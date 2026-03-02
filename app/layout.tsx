@@ -3,7 +3,7 @@ import './global.css';
 
 export const metadata: Metadata = {
   title: 'Pass Prep MVP',
-  description: 'Upload project.json, generate a structured plan, review, approve, and export.'
+  description: 'Build Pass layout and workbook drafts as separate workflows from the same transcript source data.'
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

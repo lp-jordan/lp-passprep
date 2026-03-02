@@ -35,15 +35,12 @@ export function PassPrepApp() {
   const canGeneratePlan = Boolean(validationReport?.valid && uploadedProject && run);
 
   const workbookStatus = useMemo(() => {
-    if (!courseState) return '';
-    if (courseState.workbook) {
+    if (!uploadedProject) return 'Upload a project to enable workbook generation.';
+    if (courseState?.workbook) {
       return `Workbook generated (${courseState.metadata.settings.workbookDepth} depth).`;
     }
-    if (courseState.metadata.approved) {
-      return 'Plan approved. Workbook generation is now enabled.';
-    }
-    return 'Workbook not generated yet.';
-  }, [courseState]);
+    return 'Workbook not generated yet. It can be generated independently from Pass layout approval.';
+  }, [courseState, uploadedProject]);
 
   async function createRunRequest(currentSettings: Settings): Promise<RunRecord> {
     const response = await fetch('/api/runs', {
@@ -135,7 +132,7 @@ export function PassPrepApp() {
     return {
       ...next,
       metadata: { ...next.metadata, approved: false },
-      workbook: null
+      workbook: next.workbook
     };
   }
 
@@ -196,8 +193,9 @@ export function PassPrepApp() {
   }
 
   async function generateWorkbookDraft() {
-    if (!courseState?.metadata.approved || !run) return;
-    const withWorkbook = { ...courseState, workbook: buildWorkbook(courseState) };
+    if (!uploadedProject || !run) return;
+    const workbookSource = courseState ?? buildCourseState(uploadedProject, settings);
+    const withWorkbook = { ...workbookSource, workbook: buildWorkbook(workbookSource) };
     setCourseState(withWorkbook);
     await advanceStage(run.id, 'workbook-generated', {
       courseState: withWorkbook,
@@ -230,8 +228,10 @@ export function PassPrepApp() {
     <main className="container">
       <h1>Pass Prep — MVP</h1>
       <p className="muted">
-        Upload <code>project.json</code>, generate a structured plan, review edits, approve, and export.
+        Pass layout and workbook generation are separate workflows that both use transcript data from <code>project.json</code>.
       </p>
+      <p className="muted">Pass layout flow: upload, set pre-flight options, review layout/titles/descriptions, then export if correct.</p>
+      <p className="muted">Workbook flow: generate workbook drafts independently at any point after upload + validation.</p>
       {run ? <p className="muted">Run ID: {run.id}</p> : null}
 
       <section className="card">
@@ -327,7 +327,7 @@ export function PassPrepApp() {
       </section>
 
       <section className="card">
-        <h2>3–4) Course Plan Review &amp; Edit</h2>
+        <h2>3–4) Pass Layout Review &amp; Edit</h2>
         {courseState ? (
           <div className="review-area">
             {courseState.modules.map((module: CourseModule, moduleIndex: number) => (
@@ -389,8 +389,8 @@ export function PassPrepApp() {
       </section>
 
       <section className="card">
-        <h2>5) Workbook Draft</h2>
-        <button disabled={!courseState?.metadata.approved} onClick={generateWorkbookDraft}>
+        <h2>Workbook Draft (Independent Flow)</h2>
+        <button disabled={!uploadedProject} onClick={generateWorkbookDraft}>
           Generate Workbook Draft
         </button>
         <div className="muted">{workbookStatus}</div>

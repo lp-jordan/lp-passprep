@@ -8,7 +8,7 @@ type TilePreviewProps = {
 };
 
 type ActiveTile = {
-  moduleIndex: number;
+  categoryIndex: number;
   videoIndex: number;
 };
 
@@ -17,11 +17,11 @@ export function TilePreview({ courseState }: TilePreviewProps) {
 
   const activeVideo = useMemo(() => {
     if (!activeTile) return null;
-    const module = courseState.modules[activeTile.moduleIndex];
-    if (!module) return null;
-    const video = module.videos[activeTile.videoIndex];
+    const category = courseState.modules[activeTile.categoryIndex];
+    if (!category) return null;
+    const video = category.videos[activeTile.videoIndex];
     if (!video) return null;
-    return { module, video };
+    return { category, video };
   }, [activeTile, courseState.modules]);
 
   function closeModal() {
@@ -30,29 +30,29 @@ export function TilePreview({ courseState }: TilePreviewProps) {
 
   function moveActiveTile(direction: -1 | 1) {
     if (!activeTile) return;
-    const module = courseState.modules[activeTile.moduleIndex];
-    if (!module) return;
+    const category = courseState.modules[activeTile.categoryIndex];
+    if (!category) return;
     const nextIndex = activeTile.videoIndex + direction;
-    if (nextIndex < 0 || nextIndex >= module.videos.length) return;
+    if (nextIndex < 0 || nextIndex >= category.videos.length) return;
     setActiveTile({ ...activeTile, videoIndex: nextIndex });
   }
 
   return (
-    <div className="tile-preview" aria-label="LeaderPass-style tile preview">
-      {courseState.modules.map((module, moduleIndex) => (
-        <section className="tile-preview-module" key={module.id}>
+    <div className="tile-preview" aria-label="Pass Preview tile layout">
+      {courseState.modules.map((category, categoryIndex) => (
+        <section className="tile-preview-module" key={category.id}>
           <header className="tile-preview-header">
-            <h3>{module.title}</h3>
-            <p>{module.videos.length} videos</p>
+            <h3>{category.title}</h3>
+            <p>{category.videos.length} videos</p>
           </header>
-          <div className="tile-row" role="list" aria-label={`${module.title} videos`}>
-            {module.videos.map((video, videoIndex) => (
+          <div className="tile-row" role="list" aria-label={`${category.title} videos`}>
+            {category.videos.map((video, videoIndex) => (
               <button
                 type="button"
                 role="listitem"
                 className="video-tile"
                 key={`${video.videoId}-${videoIndex}`}
-                onClick={() => setActiveTile({ moduleIndex, videoIndex })}
+                onClick={() => setActiveTile({ categoryIndex, videoIndex })}
               >
                 <span className="tile-thumbnail" aria-hidden="true" />
                 <strong>{video.generatedTitle}</strong>
@@ -65,7 +65,8 @@ export function TilePreview({ courseState }: TilePreviewProps) {
       {activeTile && activeVideo ? (
         <div className="tile-modal-backdrop" role="presentation" onClick={closeModal}>
           <div className="tile-modal" role="dialog" aria-modal="true" aria-label="Video details" onClick={(event) => event.stopPropagation()}>
-            <p className="helper">{activeVideo.module.title}</p>
+            <p className="helper">{activeVideo.category.title}</p>
+            <p className="helper">Video source: {activeVideo.video.sourceTitle}</p>
             <h3>{activeVideo.video.generatedTitle}</h3>
             <p>{activeVideo.video.generatedDescription}</p>
             <div className="actions">
@@ -75,7 +76,7 @@ export function TilePreview({ courseState }: TilePreviewProps) {
               <button
                 className="btn"
                 onClick={() => moveActiveTile(1)}
-                disabled={activeTile.videoIndex === activeVideo.module.videos.length - 1}
+                disabled={activeTile.videoIndex === activeVideo.category.videos.length - 1}
               >
                 Next →
               </button>

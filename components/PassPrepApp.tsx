@@ -1,6 +1,6 @@
 'use client';
 
-import { ChangeEvent, useMemo, useState } from 'react';
+import { ChangeEvent, DragEvent, useMemo, useState } from 'react';
 import {
   buildCourseState,
   buildWorkbook,
@@ -24,6 +24,8 @@ const defaultSettings: Settings = {
   projectNotes: ''
 };
 
+const steps = ['Import', 'Configure', 'Review', 'Workbook', 'Export'] as const;
+
 export function PassPrepApp() {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [validationReport, setValidationReport] = useState<ValidationReport | null>(null);
@@ -31,15 +33,25 @@ export function PassPrepApp() {
   const [courseState, setCourseState] = useState<CourseState | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [run, setRun] = useState<RunRecord | null>(null);
+  const [uploadedFilename, setUploadedFilename] = useState<string>('');
+  const [dragActive, setDragActive] = useState(false);
 
   const canGeneratePlan = Boolean(validationReport?.valid && uploadedProject && run);
+
+  const currentStep = useMemo(() => {
+    if (!uploadedProject) return 0;
+    if (!courseState) return 1;
+    if (!courseState.workbook) return 2;
+    if (!courseState.metadata.approved) return 3;
+    return 4;
+  }, [courseState, uploadedProject]);
 
   const workbookStatus = useMemo(() => {
     if (!uploadedProject) return 'Upload a project to enable workbook generation.';
     if (courseState?.workbook) {
       return `Workbook generated (${courseState.metadata.settings.workbookDepth} depth).`;
     }
-    return 'Workbook not generated yet. It can be generated independently from Pass layout approval.';
+    return 'Workbook not generated yet.';
   }, [courseState, uploadedProject]);
 
   async function createRunRequest(currentSettings: Settings): Promise<RunRecord> {
@@ -68,12 +80,10 @@ export function PassPrepApp() {
     return nextRun;
   }
 
-  async function handleUpload(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
+  async function processFile(file: File) {
     const nextRun = await createRunRequest(settings);
     setRun(nextRun);
+    setUploadedFilename(file.name);
 
     try {
       const text = await file.text();
@@ -114,6 +124,20 @@ export function PassPrepApp() {
         audit: { durationMs: 0, tokenInput: 0, tokenOutput: 0, estimatedCostUsd: 0 }
       });
     }
+  }
+
+  async function handleUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    await processFile(file);
+  }
+
+  async function handleDrop(event: DragEvent<HTMLLabelElement>) {
+    event.preventDefault();
+    setDragActive(false);
+    const file = event.dataTransfer.files?.[0];
+    if (!file) return;
+    await processFile(file);
   }
 
   async function generatePlan() {
@@ -226,48 +250,67 @@ export function PassPrepApp() {
 
   return (
     <main className="container">
-      <h1>Pass Prep — MVP</h1>
-      <p className="muted">
-        Pass layout and workbook generation are separate workflows that both use transcript data from <code>project.json</code>.
-      </p>
-      <p className="muted">Pass layout flow: upload, set pre-flight options, review layout/titles/descriptions, then export if correct.</p>
-      <p className="muted">Workbook flow: generate workbook drafts independently at any point after upload + validation.</p>
-      {run ? <p className="muted">Run ID: {run.id}</p> : null}
+      <h1>Pass Prep</h1>
+      <p className="subhead">Build and validate your course plan with a guided workflow.</p>
+      {run ? <p className="helper">Run ID: {run.id}</p> : null}
+
+      <nav className="stepper" aria-label="Workflow progress">
+        {steps.map((step, index) => {
+          const status = index < currentStep ? 'done' : index === currentStep ? 'active' : 'future';
+          return (
+            <div className={`step ${status}`} key={step}>
+              <span className="dot">{status === 'done' ? '✓' : index + 1}</span>
+              <span>{step}</span>
+            </div>
+          );
+        })}
+      </nav>
 
       <section className="card">
-        <h2>1) Import &amp; Validate</h2>
-        <input type="file" accept="application/json,.json" onChange={handleUpload} />
+        <h2>Import Project</h2>
+        <p className="helper">Upload a project JSON file to begin.</p>
+        <label
+          className={`dropzone ${dragActive ? 'active' : ''}`}
+          onDragOver={(event) => {
+            event.preventDefault();
+            setDragActive(true);
+          }}
+          onDragLeave={() => setDragActive(false)}
+          onDrop={handleDrop}
+        >
+          <input type="file" accept="application/json,.json" onChange={handleUpload} />
+          <span>Drop project.json here or click to upload</span>
+        </label>
         <div className="summary">
           {uploadError ? (
-            <p>{uploadError}</p>
+            <p className="error">{uploadError}</p>
           ) : validationReport ? (
             <>
+              <p>
+                <strong>File:</strong> {uploadedFilename}
+              </p>
               <p>
                 <strong>Project:</strong> {validationReport.projectName}
               </p>
               <p>
                 <strong>Videos:</strong> {validationReport.videoCount}
               </p>
-              <h4>Warnings</h4>
-              {validationReport.warnings.length > 0 ? (
-                <ul>
-                  {validationReport.warnings.map((warning: string) => (
-                    <li key={warning}>{warning}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p>No warnings detected.</p>
-              )}
+              <p>
+                <strong>Status:</strong> {validationReport.valid ? 'Valid' : 'Needs attention'}
+              </p>
             </>
-          ) : null}
+          ) : (
+            <p className="helper">No file uploaded yet.</p>
+          )}
         </div>
       </section>
 
       <section className="card">
-        <h2>2) Pre-Flight Settings</h2>
-        <div className="grid">
+        <h2>Pre-Flight Settings</h2>
+        <p className="helper">Define how the course structure should be generated.</p>
+        <div className="grid four-up">
           <label>
-            Module count
+            Module Count
             <input
               type="number"
               min={1}
@@ -277,7 +320,7 @@ export function PassPrepApp() {
             />
           </label>
           <label>
-            Title style
+            Title Style
             <select
               value={settings.titleStyle}
               onChange={(event) => setSettings((prev) => ({ ...prev, titleStyle: event.target.value as Settings['titleStyle'] }))}
@@ -288,7 +331,7 @@ export function PassPrepApp() {
             </select>
           </label>
           <label>
-            Description length
+            Description Length
             <select
               value={settings.descriptionLength}
               onChange={(event) =>
@@ -301,7 +344,7 @@ export function PassPrepApp() {
             </select>
           </label>
           <label>
-            Workbook depth
+            Workbook Depth
             <select
               value={settings.workbookDepth}
               onChange={(event) => setSettings((prev) => ({ ...prev, workbookDepth: event.target.value as Settings['workbookDepth'] }))}
@@ -313,47 +356,54 @@ export function PassPrepApp() {
           </label>
         </div>
         <label>
-          Project notes
+          Project Notes
           <textarea
-            rows={3}
-            placeholder="Optional one-time instruction for generation"
+            rows={4}
+            placeholder="Add optional context for course generation."
             value={settings.projectNotes}
             onChange={(event) => setSettings((prev) => ({ ...prev, projectNotes: event.target.value.trim() }))}
           />
         </label>
-        <button disabled={!canGeneratePlan} onClick={generatePlan}>
-          Generate Course Plan
-        </button>
+        <div className="actions end">
+          <button className="btn primary" disabled={!canGeneratePlan} onClick={generatePlan}>
+            Generate Course Plan
+          </button>
+        </div>
       </section>
 
       <section className="card">
-        <h2>3–4) Pass Layout Review &amp; Edit</h2>
+        <h2>Course Plan Review</h2>
         {courseState ? (
           <div className="review-area">
             {courseState.modules.map((module: CourseModule, moduleIndex: number) => (
-              <div key={module.id} className="module">
+              <details key={module.id} className="module" open>
+                <summary>
+                  Module {moduleIndex + 1}: {module.title}
+                </summary>
                 <label>
-                  Module title
+                  Module name
                   <input value={module.title} onChange={(event) => updateModuleTitle(moduleIndex, event.target.value)} />
                 </label>
                 <div className="actions">
-                  <button onClick={() => moveModule(moduleIndex, -1)}>Move Up</button>
-                  <button onClick={() => moveModule(moduleIndex, 1)}>Move Down</button>
+                  <button className="btn" onClick={() => moveModule(moduleIndex, -1)}>
+                    ↑ Move Up
+                  </button>
+                  <button className="btn" onClick={() => moveModule(moduleIndex, 1)}>
+                    ↓ Move Down
+                  </button>
                 </div>
                 {module.videos.map((video: CourseVideo, videoIndex: number) => (
                   <div className="video" key={`${video.videoId}-${videoIndex}`}>
-                    <p>
-                      <strong>Source:</strong> {video.sourceTitle}
-                    </p>
+                    <p className="helper">Source: {video.sourceTitle}</p>
                     <label>
-                      Generated title
+                      Title
                       <input
                         value={video.generatedTitle}
                         onChange={(event) => updateVideoField(moduleIndex, videoIndex, 'generatedTitle', event.target.value)}
                       />
                     </label>
                     <label>
-                      Generated description
+                      Description
                       <textarea
                         rows={2}
                         value={video.generatedDescription}
@@ -375,47 +425,58 @@ export function PassPrepApp() {
                     </label>
                   </div>
                 ))}
-              </div>
+              </details>
             ))}
+            <div className="actions end">
+              <button className="btn primary" onClick={approvePlan}>
+                Approve Plan
+              </button>
+            </div>
           </div>
         ) : (
-          <div className="review-area muted">Generate a plan to begin review.</div>
+          <div className="empty-state">
+            <p>No course plan generated yet.</p>
+            <button className="btn primary" disabled={!canGeneratePlan} onClick={generatePlan}>
+              Generate Plan
+            </button>
+          </div>
         )}
+      </section>
+
+      <section className="card secondary">
+        <h2>Workbook Draft</h2>
+        <p className="helper">Generate a structured markdown workbook draft from the approved plan.</p>
         <div className="actions">
-          <button disabled={!courseState} onClick={approvePlan}>
-            Approve Plan
+          <button className="btn primary" disabled={!uploadedProject} onClick={generateWorkbookDraft}>
+            Generate Workbook Draft
           </button>
         </div>
+        <div className="helper">{workbookStatus}</div>
       </section>
 
       <section className="card">
-        <h2>Workbook Draft (Independent Flow)</h2>
-        <button disabled={!uploadedProject} onClick={generateWorkbookDraft}>
-          Generate Workbook Draft
-        </button>
-        <div className="muted">{workbookStatus}</div>
-      </section>
-
-      <section className="card">
-        <h2>6) Export</h2>
+        <h2>Export</h2>
         <div className="actions">
           <button
-            disabled={!courseState}
+            className="btn primary"
+            disabled={!courseState?.metadata.approved}
             onClick={() => courseState && exportFile('course-plan.json', JSON.stringify(courseState, null, 2), 'json')}
           >
-            Export course-plan.json
+            Export Course Plan (.json)
           </button>
           <button
-            disabled={!courseState}
+            className="btn"
+            disabled={!courseState?.metadata.approved}
             onClick={() => courseState && exportFile('course-plan.md', renderCoursePlanMarkdown(courseState), 'markdown')}
           >
-            Export course-plan.md
+            Export Course Plan (.md)
           </button>
           <button
+            className="btn"
             disabled={!courseState?.workbook}
             onClick={() => courseState && exportFile('workbook-draft.md', renderWorkbookMarkdown(courseState), 'markdown')}
           >
-            Export workbook-draft.md
+            Export Workbook Draft (.md)
           </button>
         </div>
       </section>

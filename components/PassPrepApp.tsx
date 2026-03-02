@@ -38,9 +38,9 @@ export function PassPrepApp() {
   const [uploadedFilename, setUploadedFilename] = useState<string>('');
   const [dragActive, setDragActive] = useState(false);
   const [reviewView, setReviewView] = useState<'list' | 'tile'>('list');
-  const [collapsedModules, setCollapsedModules] = useState<Record<string, boolean>>({});
   const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
   const [draggingVideo, setDraggingVideo] = useState<{ moduleIndex: number; videoIndex: number } | null>(null);
+  const [expandedDescriptions, setExpandedDescriptions] = useState<Record<string, boolean>>({});
 
   const canGeneratePlan = Boolean(validationReport?.valid && uploadedProject && run);
 
@@ -193,10 +193,6 @@ export function PassPrepApp() {
     setCourseState(markUnapproved({ ...courseState, modules }));
   }
 
-  function toggleModuleCollapse(moduleId: string) {
-    setCollapsedModules((prev) => ({ ...prev, [moduleId]: !prev[moduleId] }));
-  }
-
   function moveVideo(
     sourceModuleIndex: number,
     sourceVideoIndex: number,
@@ -226,6 +222,11 @@ export function PassPrepApp() {
     if (!draggingVideo) return;
     moveVideo(draggingVideo.moduleIndex, draggingVideo.videoIndex, targetModuleIndex, targetVideoIndex);
     setDraggingVideo(null);
+  }
+
+  function autoResizeTextarea(target: HTMLTextAreaElement) {
+    target.style.height = 'auto';
+    target.style.height = `${target.scrollHeight}px`;
   }
 
 
@@ -412,50 +413,43 @@ export function PassPrepApp() {
             {reviewView === 'list' ? (
               <>
                 {courseState.modules.map((module: CourseModule, moduleIndex: number) => {
-                  const isCollapsed = collapsedModules[module.id] ?? false;
                   return (
                     <section key={module.id} className="module">
                       <div className="module-header">
-                        <button
-                          className="module-toggle"
-                          type="button"
-                          onClick={() => toggleModuleCollapse(module.id)}
-                          aria-expanded={!isCollapsed}
-                          aria-controls={`module-content-${module.id}`}
-                        >
-                          <span>{isCollapsed ? '▸' : '▾'}</span>
-                          <span>{module.videos.length} videos</span>
-                        </button>
-                        <button
-                          type="button"
-                          className="module-title-button"
-                          aria-label={`Edit ${module.title}`}
+                        <h3
+                          className="module-title-text"
+                          contentEditable={editingModuleId === module.id}
+                          suppressContentEditableWarning
+                          role="textbox"
+                          tabIndex={0}
                           onClick={() => setEditingModuleId(module.id)}
+                          onFocus={() => setEditingModuleId(module.id)}
+                          onBlur={(event) => {
+                            updateModuleTitle(moduleIndex, event.currentTarget.textContent?.trim() || module.title);
+                            setEditingModuleId(null);
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter') {
+                              event.preventDefault();
+                              event.currentTarget.blur();
+                            }
+                          }}
                         >
-                          <h3
-                            className="module-title-text"
-                            contentEditable={editingModuleId === module.id}
-                            suppressContentEditableWarning
-                            role="textbox"
-                            onBlur={(event) => {
-                              updateModuleTitle(moduleIndex, event.currentTarget.textContent?.trim() || module.title);
-                              setEditingModuleId(null);
-                            }}
-                            onKeyDown={(event) => {
-                              if (event.key === 'Enter') {
-                                event.preventDefault();
-                                event.currentTarget.blur();
-                              }
-                            }}
-                          >
-                            {module.title}
-                          </h3>
-                          <span aria-hidden="true">✎</span>
-                        </button>
+                          {module.title}
+                        </h3>
+                        <p className="module-meta">{module.videos.length} video{module.videos.length === 1 ? '' : 's'}</p>
                       </div>
-                      {!isCollapsed ? (
-                        <div id={`module-content-${module.id}`} className="module-videos">
-                          {module.videos.map((video: CourseVideo, videoIndex: number) => (
+                      <div
+                        id={`module-content-${module.id}`}
+                        className="module-videos"
+                        onDragOver={(event) => event.preventDefault()}
+                        onDrop={() => handleVideoDrop(moduleIndex, module.videos.length)}
+                      >
+                        {module.videos.map((video: CourseVideo, videoIndex: number) => {
+                          const descriptionId = `${module.id}-${video.videoId}-${videoIndex}`;
+                          const isExpanded = expandedDescriptions[descriptionId] ?? false;
+                          const hasLongDescription = video.generatedDescription.length > 180;
+                          return (
                             <div
                               className="video-card"
                               key={`${video.videoId}-${videoIndex}`}
@@ -463,30 +457,40 @@ export function PassPrepApp() {
                               onDrop={() => handleVideoDrop(moduleIndex, videoIndex)}
                             >
                               <div className="video-main">
-                                <label>
-                                  Video Title
-                                  <input
-                                    className="video-title-input"
-                                    aria-label="Video title"
-                                    value={video.generatedTitle}
-                                    onChange={(event) =>
-                                      updateVideoField(moduleIndex, videoIndex, 'generatedTitle', event.target.value)
-                                    }
-                                  />
-                                </label>
-                                <p className="video-source inline">Source: {video.sourceTitle}</p>
-                                <label>
-                                  Description
+                                <input
+                                  className="video-title-input"
+                                  aria-label="Video title"
+                                  value={video.generatedTitle}
+                                  onChange={(event) =>
+                                    updateVideoField(moduleIndex, videoIndex, 'generatedTitle', event.target.value)
+                                  }
+                                />
+                                {isExpanded ? (
                                   <textarea
                                     className="video-description-input"
                                     rows={2}
                                     aria-label="Video description"
                                     value={video.generatedDescription}
+                                    onInput={(event) => autoResizeTextarea(event.currentTarget)}
                                     onChange={(event) =>
                                       updateVideoField(moduleIndex, videoIndex, 'generatedDescription', event.target.value)
                                     }
                                   />
-                                </label>
+                                ) : (
+                                  <p className="video-description-clamped">{video.generatedDescription}</p>
+                                )}
+                                {hasLongDescription ? (
+                                  <button
+                                    type="button"
+                                    className="expand-description"
+                                    onClick={() =>
+                                      setExpandedDescriptions((prev) => ({ ...prev, [descriptionId]: !isExpanded }))
+                                    }
+                                  >
+                                    {isExpanded ? 'Collapse' : 'Expand'}
+                                  </button>
+                                ) : null}
+                                <p className="video-source">File: {video.sourceTitle}</p>
                               </div>
                               <button
                                 type="button"
@@ -500,17 +504,9 @@ export function PassPrepApp() {
                                 ⋮⋮
                               </button>
                             </div>
-                          ))}
-                          <div
-                            className="video-dropzone"
-                            onDragOver={(event) => event.preventDefault()}
-                            onDrop={() => handleVideoDrop(moduleIndex, module.videos.length)}
-                            aria-label={`Drop videos into ${module.title}`}
-                          >
-                            Drop here to move to this category
-                          </div>
-                        </div>
-                      ) : null}
+                          );
+                        })}
+                      </div>
                     </section>
                   );
                 })}
@@ -518,12 +514,6 @@ export function PassPrepApp() {
             ) : (
               <TilePreview courseState={courseState} onMoveVideo={moveVideo} />
             )}
-
-            <div className="actions end">
-              <button className="btn primary" onClick={approvePlan}>
-                Approve Plan
-              </button>
-            </div>
           </div>
         ) : (
           <div className="empty-state">
@@ -538,13 +528,19 @@ export function PassPrepApp() {
       <section className="card secondary">
         <h2>Workbook Draft</h2>
         <p className="helper">Generate a structured markdown workbook draft from the approved plan.</p>
-        <div className="actions">
-          <button className="btn primary" disabled={!uploadedProject} onClick={generateWorkbookDraft}>
-            Generate Workbook Draft
-          </button>
-        </div>
         <div className="helper">{workbookStatus}</div>
       </section>
+
+      {courseState ? (
+        <div className="sticky-action-bar">
+          <button className="btn primary" onClick={approvePlan}>
+            Approve Plan
+          </button>
+          <button className="btn" disabled={!uploadedProject} onClick={generateWorkbookDraft}>
+            Generate Workbook
+          </button>
+        </div>
+      ) : null}
 
       <section className="card">
         <h2>Export</h2>

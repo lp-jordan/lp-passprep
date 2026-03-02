@@ -231,7 +231,7 @@ button:disabled {
 
 .review-area {
   display: grid;
-  gap: 12px;
+  gap: 16px;
 }
 
 .view-toggle {
@@ -240,93 +240,103 @@ button:disabled {
 }
 
 .module {
-  border: 1px solid rgba(228, 180, 87, 0.2);
+  border: 1px solid rgba(228, 180, 87, 0.1);
   border-radius: 14px;
-  background: var(--color-surface-2);
-  padding: 14px;
+  background: rgba(48, 58, 70, 0.55);
+  padding: 16px;
   display: grid;
-  gap: 14px;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 .module-header {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.module-toggle {
-  border: none;
-  background: transparent;
-  color: var(--color-muted);
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 0;
-}
-
-.module-title-button {
-  border: none;
-  background: transparent;
-  color: var(--color-text);
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  padding: 0;
+  display: grid;
+  gap: 4px;
 }
 
 .module-title-text {
   margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 1.05rem;
+  font-weight: 550;
   outline: none;
+  cursor: text;
 }
 
 .module-title-text[contenteditable='true'] {
   border-bottom: 1px dashed var(--color-accent);
 }
 
+.module-meta {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--color-muted);
+}
+
 .module-videos {
   display: grid;
-  gap: 12px;
+  gap: 8px;
 }
 
 .video-card {
-  border: 1px solid rgba(63, 75, 90, 0.8);
+  border: 1px solid rgba(63, 75, 90, 0.28);
   border-radius: 12px;
   padding: 12px;
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 10px;
-  align-items: start;
-  background: rgba(31, 37, 45, 0.65);
+  gap: 8px;
+  align-items: center;
+  background: rgba(31, 37, 45, 0.38);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
 }
 
 .video-main {
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
 
 .video-title-input {
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 1.1rem;
+  font-weight: 550;
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 4px 0;
 }
 
 .video-description-input {
-  min-height: 64px;
+  min-height: 52px;
   font-size: 0.9rem;
+  border-color: rgba(63, 75, 90, 0.45);
+  padding: 8px 10px;
+  line-height: 1.35;
+  overflow: hidden;
+  resize: none;
+}
+
+.video-description-clamped {
+  margin: 0;
+  font-size: 0.9rem;
+  color: rgba(252, 247, 236, 0.88);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .video-source {
   margin: 0;
   color: var(--color-muted);
-  font-size: 0.78rem;
+  font-size: 0.75rem;
 }
 
-.video-source.inline {
-  margin-top: -2px;
+.expand-description {
+  border: none;
+  background: transparent;
+  color: var(--color-accent);
+  font-size: 0.76rem;
+  padding: 0;
+  width: fit-content;
+  cursor: pointer;
 }
 
 .drag-handle {
@@ -336,19 +346,23 @@ button:disabled {
   font-size: 1.25rem;
   line-height: 1;
   cursor: grab;
-  padding: 6px;
+  padding: 4px;
+  align-self: center;
+  justify-self: end;
+  opacity: 0.3;
+  transition: opacity 140ms ease;
 }
 
 .drag-handle:active {
   cursor: grabbing;
 }
 
-.video-dropzone {
-  border: 1px dashed var(--color-border);
-  border-radius: 10px;
-  padding: 8px 10px;
-  color: var(--color-muted);
-  font-size: 0.8rem;
+.video-card:hover .drag-handle {
+  opacity: 0.9;
+}
+
+.video-title-input:focus {
+  border-bottom-color: rgba(228, 180, 87, 0.5);
 }
 
 .empty-state {
@@ -360,6 +374,20 @@ button:disabled {
   place-content: center;
   justify-items: center;
   color: var(--color-muted);
+}
+
+.sticky-action-bar {
+  position: sticky;
+  bottom: 12px;
+  z-index: 20;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(63, 75, 90, 0.45);
+  background: rgba(31, 37, 45, 0.92);
+  backdrop-filter: blur(6px);
 }
 
 .tile-preview {

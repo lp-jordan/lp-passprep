@@ -15,6 +15,7 @@ import {
   ValidationReport
 } from '@/lib/passprep/core';
 import { PipelineStage, RunRecord } from '@/lib/passprep/run-model';
+import { TilePreview } from '@/components/TilePreview';
 
 const defaultSettings: Settings = {
   moduleCount: 4,
@@ -35,6 +36,7 @@ export function PassPrepApp() {
   const [run, setRun] = useState<RunRecord | null>(null);
   const [uploadedFilename, setUploadedFilename] = useState<string>('');
   const [dragActive, setDragActive] = useState(false);
+  const [reviewView, setReviewView] = useState<'list' | 'tile'>('list');
 
   const canGeneratePlan = Boolean(validationReport?.valid && uploadedProject && run);
 
@@ -375,58 +377,74 @@ export function PassPrepApp() {
         <h2>Course Plan Review</h2>
         {courseState ? (
           <div className="review-area">
-            {courseState.modules.map((module: CourseModule, moduleIndex: number) => (
-              <details key={module.id} className="module" open>
-                <summary>
-                  Module {moduleIndex + 1}: {module.title}
-                </summary>
-                <label>
-                  Module name
-                  <input value={module.title} onChange={(event) => updateModuleTitle(moduleIndex, event.target.value)} />
-                </label>
-                <div className="actions">
-                  <button className="btn" onClick={() => moveModule(moduleIndex, -1)}>
-                    ↑ Move Up
-                  </button>
-                  <button className="btn" onClick={() => moveModule(moduleIndex, 1)}>
-                    ↓ Move Down
-                  </button>
-                </div>
-                {module.videos.map((video: CourseVideo, videoIndex: number) => (
-                  <div className="video" key={`${video.videoId}-${videoIndex}`}>
-                    <p className="helper">Source: {video.sourceTitle}</p>
+            <div className="view-toggle" role="group" aria-label="Review view toggle">
+              <button className={`btn ${reviewView === 'list' ? 'primary' : ''}`} onClick={() => setReviewView('list')}>
+                List View
+              </button>
+              <button className={`btn ${reviewView === 'tile' ? 'primary' : ''}`} onClick={() => setReviewView('tile')}>
+                Tile Preview
+              </button>
+            </div>
+
+            {reviewView === 'list' ? (
+              <>
+                {courseState.modules.map((module: CourseModule, moduleIndex: number) => (
+                  <details key={module.id} className="module" open>
+                    <summary>
+                      Module {moduleIndex + 1}: {module.title}
+                    </summary>
                     <label>
-                      Title
-                      <input
-                        value={video.generatedTitle}
-                        onChange={(event) => updateVideoField(moduleIndex, videoIndex, 'generatedTitle', event.target.value)}
-                      />
+                      Module name
+                      <input value={module.title} onChange={(event) => updateModuleTitle(moduleIndex, event.target.value)} />
                     </label>
-                    <label>
-                      Description
-                      <textarea
-                        rows={2}
-                        value={video.generatedDescription}
-                        onChange={(event) => updateVideoField(moduleIndex, videoIndex, 'generatedDescription', event.target.value)}
-                      />
-                    </label>
-                    <label>
-                      Move to module
-                      <select
-                        value={moduleIndex}
-                        onChange={(event) => moveVideoToModule(moduleIndex, videoIndex, Number(event.target.value))}
-                      >
-                        {courseState.modules.map((courseModule: CourseModule, idx: number) => (
-                          <option value={idx} key={courseModule.id}>
-                            {courseModule.title}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  </div>
+                    <div className="actions">
+                      <button className="btn" onClick={() => moveModule(moduleIndex, -1)}>
+                        ↑ Move Up
+                      </button>
+                      <button className="btn" onClick={() => moveModule(moduleIndex, 1)}>
+                        ↓ Move Down
+                      </button>
+                    </div>
+                    {module.videos.map((video: CourseVideo, videoIndex: number) => (
+                      <div className="video" key={`${video.videoId}-${videoIndex}`}>
+                        <p className="helper">Source: {video.sourceTitle}</p>
+                        <label>
+                          Title
+                          <input
+                            value={video.generatedTitle}
+                            onChange={(event) => updateVideoField(moduleIndex, videoIndex, 'generatedTitle', event.target.value)}
+                          />
+                        </label>
+                        <label>
+                          Description
+                          <textarea
+                            rows={2}
+                            value={video.generatedDescription}
+                            onChange={(event) => updateVideoField(moduleIndex, videoIndex, 'generatedDescription', event.target.value)}
+                          />
+                        </label>
+                        <label>
+                          Move to module
+                          <select
+                            value={moduleIndex}
+                            onChange={(event) => moveVideoToModule(moduleIndex, videoIndex, Number(event.target.value))}
+                          >
+                            {courseState.modules.map((courseModule: CourseModule, idx: number) => (
+                              <option value={idx} key={courseModule.id}>
+                                {courseModule.title}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      </div>
+                    ))}
+                  </details>
                 ))}
-              </details>
-            ))}
+              </>
+            ) : (
+              <TilePreview courseState={courseState} />
+            )}
+
             <div className="actions end">
               <button className="btn primary" onClick={approvePlan}>
                 Approve Plan

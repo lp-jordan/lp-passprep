@@ -1,8 +1,17 @@
 :root {
-  color-scheme: light;
+  color-scheme: dark;
   font-family: Inter, Geist, system-ui, -apple-system, Segoe UI, sans-serif;
-  background: #f4f6fb;
-  color: #0f172a;
+  --color-primary: #1f252d;
+  --color-accent: #e4b457;
+  --color-text: #fcf7ec;
+  --color-bg: #1f252d;
+  --color-surface: #272f39;
+  --color-surface-2: #303a46;
+  --color-border: #3f4b5a;
+  --color-muted: #c8beb0;
+  --color-error: #fca5a5;
+  background: var(--color-bg);
+  color: var(--color-text);
 }
 
 * {
@@ -11,7 +20,8 @@
 
 body {
   margin: 0;
-  background: #f4f6fb;
+  background: var(--color-bg);
+  color: var(--color-text);
 }
 
 .container {
@@ -27,37 +37,39 @@ h1 {
   line-height: 1.2;
   margin: 0;
   font-weight: 600;
+  color: var(--color-text);
 }
 
 h2 {
   margin: 0;
   font-size: 1.2rem;
   font-weight: 600;
+  color: var(--color-text);
 }
 
 .subhead {
   margin: 0;
-  color: #475569;
+  color: var(--color-muted);
 }
 
 .helper {
   margin: 0;
   font-size: 0.85rem;
-  color: #64748b;
+  color: var(--color-muted);
 }
 
 .card {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 24px;
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
   display: grid;
   gap: 16px;
 }
 
 .secondary {
-  background: #f8fafc;
+  background: var(--color-surface-2);
 }
 
 .stepper {
@@ -68,33 +80,33 @@ h2 {
 
 .step {
   border-radius: 10px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
   padding: 10px;
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 0.85rem;
-  color: #64748b;
-  background: #fff;
+  color: var(--color-muted);
+  background: var(--color-surface);
 }
 
 .step.active {
-  border-color: #1d4ed8;
-  color: #1e3a8a;
-  background: #eff6ff;
+  border-color: var(--color-accent);
+  color: var(--color-text);
+  background: #3b3223;
 }
 
 .step.done {
-  color: #14532d;
-  background: #f0fdf4;
-  border-color: #86efac;
+  color: #d9f99d;
+  background: #2a3b2a;
+  border-color: #65a30d;
 }
 
 .dot {
   width: 22px;
   height: 22px;
   border-radius: 999px;
-  background: #e2e8f0;
+  background: var(--color-border);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -103,11 +115,13 @@ h2 {
 }
 
 .step.active .dot {
-  background: #bfdbfe;
+  background: var(--color-accent);
+  color: #1f252d;
 }
 
 .step.done .dot {
-  background: #bbf7d0;
+  background: #84cc16;
+  color: #1a2218;
 }
 
 .grid {
@@ -124,7 +138,7 @@ label {
   gap: 8px;
   font-size: 0.85rem;
   font-weight: 500;
-  color: #334155;
+  color: var(--color-text);
 }
 
 input,
@@ -140,8 +154,9 @@ textarea {
   width: 100%;
   padding: 10px 12px;
   border-radius: 10px;
-  border: 1px solid #cbd5e1;
-  background: #fff;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  color: var(--color-text);
 }
 
 textarea {
@@ -149,21 +164,21 @@ textarea {
 }
 
 .dropzone {
-  border: 2px dashed #cbd5e1;
+  border: 2px dashed var(--color-border);
   border-radius: 12px;
   min-height: 130px;
   display: grid;
   place-items: center;
   text-align: center;
-  color: #475569;
-  background: #fff;
+  color: var(--color-muted);
+  background: var(--color-surface-2);
   cursor: pointer;
   padding: 16px;
 }
 
 .dropzone.active {
-  border-color: #1d4ed8;
-  background: #eff6ff;
+  border-color: var(--color-accent);
+  background: #3b3223;
 }
 
 .dropzone input {
@@ -171,8 +186,8 @@ textarea {
 }
 
 .summary {
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   padding: 14px;
   display: grid;
@@ -180,7 +195,7 @@ textarea {
 }
 
 .error {
-  color: #b91c1c;
+  color: var(--color-error);
 }
 
 .actions {
@@ -194,18 +209,19 @@ textarea {
 }
 
 .btn {
-  border: 1px solid #cbd5e1;
-  background: #fff;
-  color: #0f172a;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  color: var(--color-text);
   padding: 10px 14px;
   border-radius: 10px;
   cursor: pointer;
 }
 
 .btn.primary {
-  background: #1d4ed8;
-  color: #fff;
-  border-color: #1d4ed8;
+  background: var(--color-accent);
+  color: var(--color-primary);
+  border-color: var(--color-accent);
+  font-weight: 600;
 }
 
 button:disabled {
@@ -224,9 +240,9 @@ button:disabled {
 }
 
 .module {
-  border: 1px solid #dbe4f0;
+  border: 1px solid var(--color-border);
   border-radius: 10px;
-  background: #fff;
+  background: var(--color-surface-2);
   padding: 12px;
   display: grid;
   gap: 10px;
@@ -238,22 +254,23 @@ summary {
 }
 
 .video {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   padding: 10px;
   display: grid;
   gap: 8px;
+  background: #2a333f;
 }
 
 .empty-state {
   min-height: 120px;
-  border: 1px dashed #cbd5e1;
+  border: 1px dashed var(--color-border);
   border-radius: 10px;
   display: grid;
   gap: 12px;
   place-content: center;
   justify-items: center;
-  color: #64748b;
+  color: var(--color-muted);
 }
 
 .tile-preview {
@@ -270,7 +287,7 @@ summary {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  color: #e2e8f0;
+  color: var(--color-muted);
 }
 
 .tile-preview-header h3,
@@ -288,31 +305,31 @@ summary {
 }
 
 .video-tile {
-  border: 1px solid #334155;
+  border: 1px solid var(--color-border);
   border-radius: 14px;
-  background: linear-gradient(150deg, #0f172a, #1e293b);
+  background: linear-gradient(150deg, #27303b, #1f252d);
   min-height: 150px;
   padding: 10px;
   display: grid;
   align-content: start;
   gap: 10px;
-  color: #f8fafc;
+  color: var(--color-text);
   text-align: left;
-  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.3);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.35);
 }
 
 .tile-thumbnail {
   width: 100%;
   height: 70px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  background: linear-gradient(135deg, #e4b457, #c98e2a);
   display: block;
 }
 
 .tile-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.65);
+  background: rgba(10, 14, 18, 0.75);
   display: grid;
   place-items: center;
   z-index: 1000;
@@ -322,8 +339,8 @@ summary {
 .tile-modal {
   width: min(680px, 100%);
   border-radius: 14px;
-  background: #f8fafc;
-  border: 1px solid #cbd5e1;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   padding: 20px;
   display: grid;
   gap: 12px;

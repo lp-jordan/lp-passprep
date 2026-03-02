@@ -33,7 +33,8 @@ test('course state and markdown outputs are generated from structured data', () 
     ]
   });
   const state = buildCourseState(project, {
-    moduleCount: 2,
+    categoryCount: 2,
+    maxVideosPerCategory: 5,
     titleStyle: 'Clear & Practical',
     descriptionLength: 'Medium',
     workbookDepth: 'Standard',
@@ -47,7 +48,7 @@ test('course state and markdown outputs are generated from structured data', () 
 
   const planMd = renderCoursePlanMarkdown(state);
   assert.match(planMd, /# Sample Leadership Project/);
-  assert.match(planMd, /## Module 1/);
+  assert.match(planMd, /## Category 1/);
 
   state.metadata.approved = true;
   state.workbook = buildWorkbook(state);

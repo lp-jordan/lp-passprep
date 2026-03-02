@@ -18,7 +18,8 @@ export type ValidationReport = {
 };
 
 export type Settings = {
-  moduleCount: number;
+  categoryCount: number;
+  maxVideosPerCategory: number;
   titleStyle: 'Clear & Practical' | 'Academic' | 'Inspirational';
   descriptionLength: 'Short' | 'Medium' | 'Long';
   workbookDepth: 'Light' | 'Standard' | 'Heavy';
@@ -151,19 +152,116 @@ export function validateProject(project: NormalizedProject): ValidationReport {
   };
 }
 
-function chunkVideos<T>(items: T[], chunkCount: number): T[][] {
-  const count = Math.max(1, Math.min(chunkCount, items.length || 1));
-  const chunks: T[][] = Array.from({ length: count }, () => []);
-  items.forEach((item, index) => chunks[index % count].push(item));
-  return chunks;
+const STOP_WORDS = new Set([
+  'the',
+  'and',
+  'for',
+  'with',
+  'that',
+  'this',
+  'from',
+  'your',
+  'into',
+  'about',
+  'have',
+  'will',
+  'what',
+  'when',
+  'where',
+  'which',
+  'while',
+  'how',
+  'why',
+  'you',
+  'our',
+  'their',
+  'them',
+  'they',
+  'was',
+  'are',
+  'can',
+  'its',
+  'not',
+  'but',
+  'all',
+  'out',
+  'too',
+  'use',
+  'using'
+]);
+
+function extractTopicKeywords(video: ProjectVideo): string[] {
+  const text = `${video.title} ${video.rawText}`.toLowerCase();
+  return text
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter((word) => word.length > 3 && !STOP_WORDS.has(word));
+}
+
+function toCategoryLabel(keyword: string): string {
+  return keyword
+    .split(/\s+/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function groupVideosByTopic(videos: ProjectVideo[], settings: Settings): Array<{ title: string; videos: ProjectVideo[] }> {
+  const categoryTarget = Math.max(1, Math.min(settings.categoryCount, videos.length || 1));
+  const maxPerCategory = Math.max(1, settings.maxVideosPerCategory || 5);
+  const keywordCounts = new Map<string, number>();
+
+  videos.forEach((video) => {
+    const seen = new Set<string>();
+    extractTopicKeywords(video).forEach((keyword) => {
+      if (seen.has(keyword)) return;
+      seen.add(keyword);
+      keywordCounts.set(keyword, (keywordCounts.get(keyword) ?? 0) + 1);
+    });
+  });
+
+  const seeds = [...keywordCounts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, categoryTarget)
+    .map(([keyword]) => keyword);
+
+  const categories: Array<{ seed: string; title: string; videos: ProjectVideo[] }> = seeds.map((seed, idx) => ({
+    seed,
+    title: `${toCategoryLabel(seed)} Focus ${idx + 1}`,
+    videos: []
+  }));
+
+  if (categories.length === 0) {
+    categories.push({ seed: 'general', title: 'General Focus 1', videos: [] });
+  }
+
+  videos.forEach((video) => {
+    const keywords = new Set(extractTopicKeywords(video));
+
+    let bestIndex = 0;
+    let bestScore = -1;
+    categories.forEach((category, idx) => {
+      if (category.videos.length >= maxPerCategory) return;
+      const score = keywords.has(category.seed) ? 1 : 0;
+      if (score > bestScore || (score === bestScore && category.videos.length < categories[bestIndex].videos.length)) {
+        bestScore = score;
+        bestIndex = idx;
+      }
+    });
+
+    const openIndex = categories.findIndex((category) => category.videos.length < maxPerCategory);
+    const targetIndex = openIndex === -1 ? bestIndex : bestScore < 0 ? openIndex : bestIndex;
+    categories[targetIndex].videos.push(video);
+  });
+
+  return categories.filter((category) => category.videos.length > 0).map(({ title, videos: groupedVideos }) => ({ title, videos: groupedVideos }));
 }
 
 export function buildCourseState(project: NormalizedProject, settings: Settings): CourseState {
-  const chunks = chunkVideos(project.videos, settings.moduleCount);
-  const modules: CourseModule[] = chunks.map((videos, idx) => ({
+  const categoryGroups = groupVideosByTopic(project.videos, settings);
+  const modules: CourseModule[] = categoryGroups.map((group, idx) => ({
     id: `module-${idx + 1}`,
-    title: `Module ${idx + 1}`,
-    videos: videos.map((video) => ({
+    title: group.title,
+    videos: group.videos.map((video) => ({
       videoId: video.id,
       sourceTitle: video.title,
       generatedTitle: generateVideoTitle(video, settings),
@@ -241,7 +339,7 @@ export function buildWorkbook(courseState: CourseState): Workbook {
 export function renderCoursePlanMarkdown(courseState: CourseState): string {
   const lines = [`# ${courseState.projectName}`, '', `Generated: ${courseState.metadata.generatedAt}`, ''];
   courseState.modules.forEach((module, idx) => {
-    lines.push(`## Module ${idx + 1}: ${module.title}`);
+    lines.push(`## Category ${idx + 1}: ${module.title}`);
     module.videos.forEach((video) => {
       lines.push(`- **${video.generatedTitle}**`);
       lines.push(`  - Source: ${video.sourceTitle}`);

@@ -18,7 +18,8 @@ import { PipelineStage, RunRecord } from '@/lib/passprep/run-model';
 import { TilePreview } from '@/components/TilePreview';
 
 const defaultSettings: Settings = {
-  moduleCount: 4,
+  categoryCount: 4,
+  maxVideosPerCategory: 5,
   titleStyle: 'Clear & Practical',
   descriptionLength: 'Medium',
   workbookDepth: 'Standard',
@@ -199,13 +200,6 @@ export function PassPrepApp() {
     setCourseState(markUnapproved({ ...courseState, modules }));
   }
 
-  function moveVideoToModule(moduleIndex: number, videoIndex: number, nextModuleIndex: number) {
-    if (!courseState || moduleIndex === nextModuleIndex) return;
-    const modules = courseState.modules.map((module: CourseModule) => ({ ...module, videos: [...module.videos] }));
-    const [moved] = modules[moduleIndex].videos.splice(videoIndex, 1);
-    modules[nextModuleIndex].videos.push(moved);
-    setCourseState(markUnapproved({ ...courseState, modules }));
-  }
 
   async function approvePlan() {
     if (!courseState || !run) return;
@@ -312,13 +306,25 @@ export function PassPrepApp() {
         <p className="helper">Define how the course structure should be generated.</p>
         <div className="grid four-up">
           <label>
-            Module Count
+            Category Count
             <input
               type="number"
               min={1}
               max={20}
-              value={settings.moduleCount}
-              onChange={(event) => setSettings((prev) => ({ ...prev, moduleCount: Number(event.target.value || 4) }))}
+              value={settings.categoryCount}
+              onChange={(event) => setSettings((prev) => ({ ...prev, categoryCount: Number(event.target.value || 4) }))}
+            />
+          </label>
+          <label>
+            Max Videos per Category
+            <input
+              type="number"
+              min={1}
+              max={20}
+              value={settings.maxVideosPerCategory}
+              onChange={(event) =>
+                setSettings((prev) => ({ ...prev, maxVideosPerCategory: Number(event.target.value || 5) }))
+              }
             />
           </label>
           <label>
@@ -345,17 +351,6 @@ export function PassPrepApp() {
               <option>Long</option>
             </select>
           </label>
-          <label>
-            Workbook Depth
-            <select
-              value={settings.workbookDepth}
-              onChange={(event) => setSettings((prev) => ({ ...prev, workbookDepth: event.target.value as Settings['workbookDepth'] }))}
-            >
-              <option>Light</option>
-              <option>Standard</option>
-              <option>Heavy</option>
-            </select>
-          </label>
         </div>
         <label>
           Project Notes
@@ -374,7 +369,7 @@ export function PassPrepApp() {
       </section>
 
       <section className="card">
-        <h2>Course Plan Review</h2>
+        <h2>Pass Preview</h2>
         {courseState ? (
           <div className="review-area">
             <div className="view-toggle" role="group" aria-label="Review view toggle">
@@ -391,10 +386,10 @@ export function PassPrepApp() {
                 {courseState.modules.map((module: CourseModule, moduleIndex: number) => (
                   <details key={module.id} className="module" open>
                     <summary>
-                      Module {moduleIndex + 1}: {module.title}
+                      Category {moduleIndex + 1}: {module.title}
                     </summary>
                     <label>
-                      Module name
+                      Category name
                       <input value={module.title} onChange={(event) => updateModuleTitle(moduleIndex, event.target.value)} />
                     </label>
                     <div className="actions">
@@ -422,19 +417,6 @@ export function PassPrepApp() {
                             value={video.generatedDescription}
                             onChange={(event) => updateVideoField(moduleIndex, videoIndex, 'generatedDescription', event.target.value)}
                           />
-                        </label>
-                        <label>
-                          Move to module
-                          <select
-                            value={moduleIndex}
-                            onChange={(event) => moveVideoToModule(moduleIndex, videoIndex, Number(event.target.value))}
-                          >
-                            {courseState.modules.map((courseModule: CourseModule, idx: number) => (
-                              <option value={idx} key={courseModule.id}>
-                                {courseModule.title}
-                              </option>
-                            ))}
-                          </select>
                         </label>
                       </div>
                     ))}

@@ -74,3 +74,25 @@ test('normalize extracts transcript text from nested transcript objects and segm
 
   assert.equal(project.videos[0].rawText, 'First idea from transcript. Second idea from transcript.');
 });
+
+
+test('source label prefers fileName over id', () => {
+  const project = normalizeProject({
+    projectName: 'Source Priority',
+    videos: [
+      { id: 'id-9z', fileName: 'Session 3c.mp4', title: 'No source token', rawText: 'Transcript text' }
+    ]
+  });
+
+  const state = buildCourseState(project, {
+    categoryCount: 1,
+    maxVideosPerCategory: 5,
+    titleStyle: 'Clear & Practical',
+    descriptionLength: 'Medium',
+    workbookDepth: 'Standard',
+    projectNotes: ''
+  });
+
+  assert.equal(state.modules[0].videos[0].sourceTitle, '3C');
+});
+

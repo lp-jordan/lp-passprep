@@ -5,6 +5,12 @@ import { CourseState } from '@/lib/passprep/core';
 
 type TilePreviewProps = {
   courseState: CourseState;
+  onMoveVideo: (
+    sourceModuleIndex: number,
+    sourceVideoIndex: number,
+    targetModuleIndex: number,
+    targetVideoIndex: number
+  ) => void;
 };
 
 type ActiveTile = {
@@ -12,8 +18,9 @@ type ActiveTile = {
   videoIndex: number;
 };
 
-export function TilePreview({ courseState }: TilePreviewProps) {
+export function TilePreview({ courseState, onMoveVideo }: TilePreviewProps) {
   const [activeTile, setActiveTile] = useState<ActiveTile | null>(null);
+  const [draggingTile, setDraggingTile] = useState<ActiveTile | null>(null);
 
   const activeVideo = useMemo(() => {
     if (!activeTile) return null;
@@ -37,6 +44,12 @@ export function TilePreview({ courseState }: TilePreviewProps) {
     setActiveTile({ ...activeTile, videoIndex: nextIndex });
   }
 
+  function handleDrop(targetModuleIndex: number, targetVideoIndex: number) {
+    if (!draggingTile) return;
+    onMoveVideo(draggingTile.categoryIndex, draggingTile.videoIndex, targetModuleIndex, targetVideoIndex);
+    setDraggingTile(null);
+  }
+
   return (
     <div className="tile-preview" aria-label="Pass Preview tile layout">
       {courseState.modules.map((category, categoryIndex) => (
@@ -53,11 +66,19 @@ export function TilePreview({ courseState }: TilePreviewProps) {
                 className="video-tile"
                 key={`${video.videoId}-${videoIndex}`}
                 onClick={() => setActiveTile({ categoryIndex, videoIndex })}
+                draggable
+                onDragStart={() => setDraggingTile({ categoryIndex, videoIndex })}
+                onDragEnd={() => setDraggingTile(null)}
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={() => handleDrop(categoryIndex, videoIndex)}
               >
                 <span className="tile-thumbnail" aria-hidden="true" />
                 <strong>{video.generatedTitle}</strong>
               </button>
             ))}
+            <div className="tile-dropzone" onDragOver={(event) => event.preventDefault()} onDrop={() => handleDrop(categoryIndex, category.videos.length)}>
+              Drop tile here
+            </div>
           </div>
         </section>
       ))}
@@ -66,8 +87,10 @@ export function TilePreview({ courseState }: TilePreviewProps) {
         <div className="tile-modal-backdrop" role="presentation" onClick={closeModal}>
           <div className="tile-modal" role="dialog" aria-modal="true" aria-label="Video details" onClick={(event) => event.stopPropagation()}>
             <p className="helper">{activeVideo.category.title}</p>
-            <p className="helper">Video source: {activeVideo.video.sourceTitle}</p>
-            <h3>{activeVideo.video.generatedTitle}</h3>
+            <h3>
+              {activeVideo.video.generatedTitle}
+              <span className="video-source-inline">Source: {activeVideo.video.sourceTitle}</span>
+            </h3>
             <p>{activeVideo.video.generatedDescription}</p>
             <div className="actions">
               <button className="btn" onClick={() => moveActiveTile(-1)} disabled={activeTile.videoIndex === 0}>

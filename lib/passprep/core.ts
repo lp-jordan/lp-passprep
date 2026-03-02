@@ -1,5 +1,6 @@
 export type ProjectVideo = {
   id: string;
+  fileName: string;
   title: string;
   rawText: string;
   status?: string;
@@ -76,6 +77,7 @@ export function normalizeProject(input: Record<string, unknown>): NormalizedProj
     const v = (video ?? {}) as Record<string, unknown>;
     return {
       id: String(v.id ?? `video-${index + 1}`),
+      fileName: String(v.fileName ?? v.filename ?? v.file ?? ''),
       title: String(v.title ?? `Video ${index + 1}`),
       rawText: extractTranscriptText(v),
       status: v.status ? String(v.status) : undefined
@@ -206,13 +208,13 @@ function toCategoryLabel(keyword: string): string {
 }
 
 function deriveSourceFromVideoName(video: ProjectVideo): string {
+  const fileNameMatch = video.fileName.match(/\b\d+[a-z]\b/i);
+  if (fileNameMatch) return fileNameMatch[0].toUpperCase();
+
   const sourceMatch = video.title.match(/\b\d+[a-z]\b/i);
   if (sourceMatch) return sourceMatch[0].toUpperCase();
 
-  const idMatch = video.id.match(/\b\d+[a-z]\b/i);
-  if (idMatch) return idMatch[0].toUpperCase();
-
-  return video.id;
+  return video.fileName || video.id;
 }
 
 function groupVideosByTopic(videos: ProjectVideo[], settings: Settings): Array<{ title: string; videos: ProjectVideo[] }> {

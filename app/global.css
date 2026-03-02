@@ -404,7 +404,6 @@ button:disabled {
   gap: 10px;
   color: var(--color-text);
   text-align: left;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.35);
 }
 
 .tile-thumbnail {
@@ -413,6 +412,25 @@ button:disabled {
   border-radius: 10px;
   background: linear-gradient(135deg, #e4b457, #c98e2a);
   display: block;
+}
+
+
+.tile-dropzone {
+  border: 1px dashed rgba(228, 180, 87, 0.35);
+  border-radius: 14px;
+  min-height: 150px;
+  padding: 10px;
+  color: var(--color-muted);
+  display: grid;
+  place-items: center;
+  font-size: 0.85rem;
+}
+
+.video-source-inline {
+  margin-left: 10px;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+  font-weight: 500;
 }
 
 .tile-modal-backdrop {
@@ -438,4 +456,11 @@ button:disabled {
 .tile-modal h3,
 .tile-modal p {
   margin: 0;
+}
+
+.tile-modal h3 {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
 }

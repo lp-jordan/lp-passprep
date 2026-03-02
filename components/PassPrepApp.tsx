@@ -516,7 +516,7 @@ export function PassPrepApp() {
                 })}
               </>
             ) : (
-              <TilePreview courseState={courseState} />
+              <TilePreview courseState={courseState} onMoveVideo={moveVideo} />
             )}
 
             <div className="actions end">

@@ -64,19 +64,71 @@ export type CourseState = {
 
 export function normalizeProject(input: Record<string, unknown>): NormalizedProject {
   const projectName = String(input.projectName ?? input.name ?? 'Untitled Project');
-  const rawVideos = Array.isArray(input.videos) ? input.videos : [];
+  const projectRecord = (input.project ?? {}) as Record<string, unknown>;
+  const rawVideos = Array.isArray(input.videos)
+    ? input.videos
+    : Array.isArray(projectRecord.videos)
+      ? projectRecord.videos
+      : [];
 
   const videos: ProjectVideo[] = rawVideos.map((video, index) => {
     const v = (video ?? {}) as Record<string, unknown>;
     return {
       id: String(v.id ?? `video-${index + 1}`),
       title: String(v.title ?? `Video ${index + 1}`),
-      rawText: String(v.rawText ?? v.transcript ?? ''),
+      rawText: extractTranscriptText(v),
       status: v.status ? String(v.status) : undefined
     };
   });
 
   return { projectName, videos };
+}
+
+function extractTranscriptText(video: Record<string, unknown>): string {
+  const fromDirect = textFromUnknown(video.rawText ?? video.transcript ?? video.transcriptText ?? video.description);
+  if (fromDirect) return fromDirect;
+
+  const transcriptObject = (video.transcript ?? {}) as Record<string, unknown>;
+  return (
+    textFromUnknown(
+      transcriptObject.text ??
+        transcriptObject.rawText ??
+        transcriptObject.content ??
+        transcriptObject.fullText ??
+        transcriptObject.transcript
+    ) ??
+    textFromUnknown(transcriptObject.segments ?? transcriptObject.captions ?? transcriptObject.lines) ??
+    ''
+  );
+}
+
+function textFromUnknown(input: unknown): string | null {
+  if (typeof input === 'string') return input.trim();
+  if (!input) return null;
+
+  if (Array.isArray(input)) {
+    const joined = input
+      .map((item) => {
+        if (typeof item === 'string') return item;
+        if (item && typeof item === 'object') {
+          const record = item as Record<string, unknown>;
+          return String(record.text ?? record.content ?? record.value ?? '').trim();
+        }
+        return '';
+      })
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+    return joined || null;
+  }
+
+  if (typeof input === 'object') {
+    const record = input as Record<string, unknown>;
+    const candidate = String(record.text ?? record.content ?? record.value ?? '').trim();
+    return candidate || null;
+  }
+
+  return String(input).trim() || null;
 }
 
 export function validateProject(project: NormalizedProject): ValidationReport {
@@ -114,8 +166,8 @@ export function buildCourseState(project: NormalizedProject, settings: Settings)
     videos: videos.map((video) => ({
       videoId: video.id,
       sourceTitle: video.title,
-      generatedTitle: `${video.title} (${settings.titleStyle})`,
-      generatedDescription: video.rawText.slice(0, settings.descriptionLength === 'Short' ? 90 : settings.descriptionLength === 'Medium' ? 180 : 280)
+      generatedTitle: generateVideoTitle(video, settings),
+      generatedDescription: generateVideoDescription(video, settings)
     }))
   }));
 
@@ -125,6 +177,45 @@ export function buildCourseState(project: NormalizedProject, settings: Settings)
     metadata: { approved: false, settings, generatedAt: new Date().toISOString() },
     workbook: null
   };
+}
+
+function generateVideoTitle(video: ProjectVideo, settings: Settings): string {
+  const transcript = video.rawText.replace(/\s+/g, ' ').trim();
+  const topic = transcript
+    .split(/[.!?]\s+/)
+    .map((sentence) => sentence.trim())
+    .find((sentence) => sentence.length > 20)
+    ?.replace(/[^\w\s-]/g, '')
+    .split(/\s+/)
+    .slice(0, 6)
+    .join(' ');
+
+  const titleCore = topic || video.title;
+  if (settings.titleStyle === 'Academic') return `Foundations of ${titleCore}`;
+  if (settings.titleStyle === 'Inspirational') return `Unlocking ${titleCore}`;
+  return `${titleCore}: Practical Breakdown`;
+}
+
+function generateVideoDescription(video: ProjectVideo, settings: Settings): string {
+  const transcript = video.rawText.replace(/\s+/g, ' ').trim();
+  const charTarget = settings.descriptionLength === 'Short' ? 140 : settings.descriptionLength === 'Medium' ? 260 : 420;
+
+  if (!transcript) {
+    return `Covers core ideas from "${video.title}" with a focus on real-world application.`;
+  }
+
+  const sentenceChunks = transcript
+    .split(/(?<=[.!?])\s+/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+
+  let result = '';
+  for (const sentence of sentenceChunks) {
+    if ((result + ' ' + sentence).trim().length > charTarget && result.length > 0) break;
+    result = `${result} ${sentence}`.trim();
+  }
+
+  return result || transcript.slice(0, charTarget).trim();
 }
 
 export function buildWorkbook(courseState: CourseState): Workbook {

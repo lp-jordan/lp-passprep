@@ -42,6 +42,8 @@ test('course state and markdown outputs are generated from structured data', () 
 
   assert.equal(state.modules.length, 2);
   assert.equal(state.metadata.approved, false);
+  assert.match(state.modules[0].videos[0].generatedTitle, /Practical Breakdown/);
+  assert.ok(state.modules[0].videos[0].generatedDescription.length > 40);
 
   const planMd = renderCoursePlanMarkdown(state);
   assert.match(planMd, /# Sample Leadership Project/);
@@ -52,4 +54,21 @@ test('course state and markdown outputs are generated from structured data', () 
   const workbookMd = renderWorkbookMarkdown(state);
   assert.match(workbookMd, /Workbook Draft/);
   assert.match(workbookMd, /#### Reflection Questions/);
+});
+
+test('normalize extracts transcript text from nested transcript objects and segments', () => {
+  const project = normalizeProject({
+    projectName: 'Transcript Parsing',
+    videos: [
+      {
+        id: 'nested-1',
+        title: 'Nested transcript object',
+        transcript: {
+          segments: [{ text: 'First idea from transcript.' }, { text: 'Second idea from transcript.' }]
+        }
+      }
+    ]
+  });
+
+  assert.equal(project.videos[0].rawText, 'First idea from transcript. Second idea from transcript.');
 });

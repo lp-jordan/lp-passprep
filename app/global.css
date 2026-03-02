@@ -266,9 +266,26 @@ button:disabled {
   padding: 0;
 }
 
-.module-title-input {
+.module-title-button {
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.module-title-text {
+  margin: 0;
   font-size: 1rem;
   font-weight: 600;
+  outline: none;
+}
+
+.module-title-text[contenteditable='true'] {
+  border-bottom: 1px dashed var(--color-accent);
 }
 
 .module-videos {
@@ -306,6 +323,10 @@ button:disabled {
   margin: 0;
   color: var(--color-muted);
   font-size: 0.78rem;
+}
+
+.video-source.inline {
+  margin-top: -2px;
 }
 
 .drag-handle {

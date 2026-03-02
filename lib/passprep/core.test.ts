@@ -28,8 +28,8 @@ test('course state and markdown outputs are generated from structured data', () 
   const project = normalizeProject({
     projectName: 'Sample Leadership Project',
     videos: [
-      { id: 'v1', title: 'Lead Better', rawText: 'Leadership starts with listening to your team.' },
-      { id: 'v2', title: 'Run Retros', rawText: 'A practical framework for weekly retrospectives.' }
+      { id: 'v1', title: '1A - Lead Better', rawText: 'Leadership starts with listening to your team.' },
+      { id: 'v2', title: '7b Run Retros', rawText: 'A practical framework for weekly retrospectives.' }
     ]
   });
   const state = buildCourseState(project, {
@@ -45,6 +45,7 @@ test('course state and markdown outputs are generated from structured data', () 
   assert.equal(state.metadata.approved, false);
   assert.match(state.modules[0].videos[0].generatedTitle, /Practical Breakdown/);
   assert.ok(state.modules[0].videos[0].generatedDescription.length > 40);
+  assert.equal(state.modules[0].videos[0].sourceTitle, '1A');
 
   const planMd = renderCoursePlanMarkdown(state);
   assert.match(planMd, /# Sample Leadership Project/);

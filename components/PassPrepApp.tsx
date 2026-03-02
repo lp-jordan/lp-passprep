@@ -39,6 +39,7 @@ export function PassPrepApp() {
   const [dragActive, setDragActive] = useState(false);
   const [reviewView, setReviewView] = useState<'list' | 'tile'>('list');
   const [collapsedModules, setCollapsedModules] = useState<Record<string, boolean>>({});
+  const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
   const [draggingVideo, setDraggingVideo] = useState<{ moduleIndex: number; videoIndex: number } | null>(null);
 
   const canGeneratePlan = Boolean(validationReport?.valid && uploadedProject && run);
@@ -423,14 +424,34 @@ export function PassPrepApp() {
                           aria-controls={`module-content-${module.id}`}
                         >
                           <span>{isCollapsed ? '▸' : '▾'}</span>
-                          <span>Category {moduleIndex + 1}</span>
+                          <span>{module.videos.length} videos</span>
                         </button>
-                        <input
-                          className="module-title-input"
-                          aria-label={`Category ${moduleIndex + 1} name`}
-                          value={module.title}
-                          onChange={(event) => updateModuleTitle(moduleIndex, event.target.value)}
-                        />
+                        <button
+                          type="button"
+                          className="module-title-button"
+                          aria-label={`Edit ${module.title}`}
+                          onClick={() => setEditingModuleId(module.id)}
+                        >
+                          <h3
+                            className="module-title-text"
+                            contentEditable={editingModuleId === module.id}
+                            suppressContentEditableWarning
+                            role="textbox"
+                            onBlur={(event) => {
+                              updateModuleTitle(moduleIndex, event.currentTarget.textContent?.trim() || module.title);
+                              setEditingModuleId(null);
+                            }}
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter') {
+                                event.preventDefault();
+                                event.currentTarget.blur();
+                              }
+                            }}
+                          >
+                            {module.title}
+                          </h3>
+                          <span aria-hidden="true">✎</span>
+                        </button>
                       </div>
                       {!isCollapsed ? (
                         <div id={`module-content-${module.id}`} className="module-videos">
@@ -442,24 +463,30 @@ export function PassPrepApp() {
                               onDrop={() => handleVideoDrop(moduleIndex, videoIndex)}
                             >
                               <div className="video-main">
-                                <input
-                                  className="video-title-input"
-                                  aria-label="Video title"
-                                  value={video.generatedTitle}
-                                  onChange={(event) =>
-                                    updateVideoField(moduleIndex, videoIndex, 'generatedTitle', event.target.value)
-                                  }
-                                />
-                                <textarea
-                                  className="video-description-input"
-                                  rows={2}
-                                  aria-label="Video description"
-                                  value={video.generatedDescription}
-                                  onChange={(event) =>
-                                    updateVideoField(moduleIndex, videoIndex, 'generatedDescription', event.target.value)
-                                  }
-                                />
-                                <p className="video-source">Source: {video.sourceTitle}</p>
+                                <label>
+                                  Video Title
+                                  <input
+                                    className="video-title-input"
+                                    aria-label="Video title"
+                                    value={video.generatedTitle}
+                                    onChange={(event) =>
+                                      updateVideoField(moduleIndex, videoIndex, 'generatedTitle', event.target.value)
+                                    }
+                                  />
+                                </label>
+                                <p className="video-source inline">Source: {video.sourceTitle}</p>
+                                <label>
+                                  Description
+                                  <textarea
+                                    className="video-description-input"
+                                    rows={2}
+                                    aria-label="Video description"
+                                    value={video.generatedDescription}
+                                    onChange={(event) =>
+                                      updateVideoField(moduleIndex, videoIndex, 'generatedDescription', event.target.value)
+                                    }
+                                  />
+                                </label>
                               </div>
                               <button
                                 type="button"

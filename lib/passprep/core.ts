@@ -205,6 +205,16 @@ function toCategoryLabel(keyword: string): string {
     .join(' ');
 }
 
+function deriveSourceFromVideoName(video: ProjectVideo): string {
+  const sourceMatch = video.title.match(/\b\d+[a-z]\b/i);
+  if (sourceMatch) return sourceMatch[0].toUpperCase();
+
+  const idMatch = video.id.match(/\b\d+[a-z]\b/i);
+  if (idMatch) return idMatch[0].toUpperCase();
+
+  return video.id;
+}
+
 function groupVideosByTopic(videos: ProjectVideo[], settings: Settings): Array<{ title: string; videos: ProjectVideo[] }> {
   const categoryTarget = Math.max(1, Math.min(settings.categoryCount, videos.length || 1));
   const maxPerCategory = Math.max(1, settings.maxVideosPerCategory || 5);
@@ -263,7 +273,7 @@ export function buildCourseState(project: NormalizedProject, settings: Settings)
     title: group.title,
     videos: group.videos.map((video) => ({
       videoId: video.id,
-      sourceTitle: video.title,
+      sourceTitle: deriveSourceFromVideoName(video),
       generatedTitle: generateVideoTitle(video, settings),
       generatedDescription: generateVideoDescription(video, settings)
     }))

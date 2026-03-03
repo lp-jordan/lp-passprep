@@ -1,74 +1,79 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { CourseState } from '@/lib/passprep/core';
-import { RefinementScope } from '@/lib/passprep/refinement';
+import {
+  isValidRefineScope,
+  RefineInputError,
+  RefineModelError,
+  RefineReturnAction,
+  runRefinement
+} from '@/lib/passprep/refine';
 
-type RefineRequest = {
-  instruction?: string;
-  courseState?: CourseState;
-  scope?: RefinementScope;
+type RefineRequestBody = {
+  projectState?: CourseState;
+  userInstruction?: string;
+  scope?: unknown;
+  styleExampleId?: string;
+  action?: RefineReturnAction;
 };
 
-function toInstructionSuffix(instruction: string): string {
-  return instruction.trim().replace(/\s+/g, ' ').slice(0, 140);
+function isValidAction(action: unknown): action is RefineReturnAction {
+  return action === undefined || action === 'returnFullState' || action === 'returnPatchAndState';
 }
 
 export async function POST(request: NextRequest) {
-  const body = (await request.json().catch(() => ({}))) as RefineRequest;
-  if (!body.courseState || !body.instruction?.trim() || !body.scope) {
-    return NextResponse.json({ error: 'courseState, instruction, and scope are required' }, { status: 400 });
+  const body = (await request.json().catch(() => ({}))) as RefineRequestBody;
+
+  if (!body.projectState) {
+    return NextResponse.json({ error: 'Missing required field: projectState' }, { status: 400 });
   }
 
-  const instruction = toInstructionSuffix(body.instruction);
-  const scope = body.scope;
-  const requestedVideoIds = scope.videoIds
-    .split(',')
-    .map((videoId) => videoId.trim())
-    .filter(Boolean);
+  if (typeof body.userInstruction !== 'string' || !body.userInstruction.trim()) {
+    return NextResponse.json({ error: 'Missing required field: userInstruction' }, { status: 400 });
+  }
 
-  let updatedVideos = 0;
+  if (!isValidRefineScope(body.scope)) {
+    return NextResponse.json(
+      {
+        error:
+          "Malformed scope. Expected {type:'all'} | {type:'categoryId',categoryId:string} | {type:'videoIds',videoIds:string[]}."
+      },
+      { status: 400 }
+    );
+  }
 
-  const nextModules = body.courseState.modules.map((module) => {
-    const moduleSelected =
-      scope.mode === 'global' ||
-      scope.target === 'all' ||
-      (scope.target === 'categoryId' && scope.categoryId.trim() === module.id);
+  if (!isValidAction(body.action)) {
+    return NextResponse.json(
+      { error: "Malformed action. Allowed values: 'returnFullState' | 'returnPatchAndState'." },
+      { status: 400 }
+    );
+  }
 
-    const videos = module.videos.map((video) => {
-      const videoSelected =
-        moduleSelected || (scope.target === 'videoIds' && requestedVideoIds.length > 0 && requestedVideoIds.includes(video.videoId));
-
-      if (!videoSelected) return video;
-
-      const shouldChangeTitle = scope.mode === 'global' || scope.target !== 'descriptions-only';
-      const shouldChangeDescription = scope.mode === 'global' || scope.target !== 'titles-only';
-
-      updatedVideos += 1;
-
-      return {
-        ...video,
-        generatedTitle: shouldChangeTitle ? `${video.generatedTitle} · Refined` : video.generatedTitle,
-        generatedDescription: shouldChangeDescription
-          ? `${video.generatedDescription}\n\nRefinement note: ${instruction}`
-          : video.generatedDescription
-      };
+  try {
+    const result = await runRefinement({
+      projectState: body.projectState,
+      userInstruction: body.userInstruction,
+      scope: body.scope,
+      styleExampleId: body.styleExampleId
     });
 
-    return {
-      ...module,
-      title: moduleSelected && (scope.mode === 'global' || scope.target !== 'descriptions-only') ? `${module.title} · Refined` : module.title,
-      videos
-    };
-  });
+    if (body.action === 'returnFullState') {
+      return NextResponse.json({ projectState: result.updatedProjectState });
+    }
 
-  return NextResponse.json({
-    courseState: {
-      ...body.courseState,
-      modules: nextModules,
-      metadata: {
-        ...body.courseState.metadata,
-        approved: false
-      }
-    },
-    message: `Applied refinement to ${updatedVideos} video${updatedVideos === 1 ? '' : 's'} (${scope.mode}/${scope.target}).`
-  });
+    return NextResponse.json({
+      patch: result.patch,
+      updatedProjectState: result.updatedProjectState
+    });
+  } catch (error) {
+    if (error instanceof RefineInputError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    if (error instanceof RefineModelError) {
+      return NextResponse.json({ error: error.message }, { status: 502 });
+    }
+
+    const message = error instanceof Error ? error.message : 'Unexpected refinement server error';
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }

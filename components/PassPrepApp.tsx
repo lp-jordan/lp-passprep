@@ -46,7 +46,6 @@ export function PassPrepApp() {
   const [chatMessages, setChatMessages] = useState<RefinementMessage[]>([]);
   const [pendingInstruction, setPendingInstruction] = useState('');
   const [refinementScope, setRefinementScope] = useState<RefinementScope>({
-    mode: 'global',
     target: 'all',
     categoryId: '',
     videoIds: ''
@@ -260,29 +259,40 @@ export function PassPrepApp() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          instruction: pendingInstruction.trim(),
-          scope: refinementScope,
-          courseState
+          userInstruction: pendingInstruction.trim(),
+          scope:
+            refinementScope.target === 'all'
+              ? { type: 'all' }
+              : refinementScope.target === 'categoryId'
+                ? { type: 'categoryId', categoryId: refinementScope.categoryId.trim() }
+                : {
+                    type: 'videoIds',
+                    videoIds: refinementScope.videoIds
+                      .split(',')
+                      .map((id) => id.trim())
+                      .filter(Boolean)
+                  },
+          projectState: courseState,
+          action: 'returnPatchAndState'
         })
       });
 
       const body = (await response.json().catch(() => ({}))) as {
         error?: string;
-        message?: string;
-        courseState?: CourseState;
+        updatedProjectState?: CourseState;
       };
-      if (!response.ok || !body.courseState) {
+      if (!response.ok || !body.updatedProjectState) {
         throw new Error(body.error ?? 'Unable to refine content');
       }
 
-      setCourseState(body.courseState);
+      setCourseState(body.updatedProjectState);
       setPendingInstruction('');
       setChatMessages((prev) => [
         ...prev,
         {
           id: `${Date.now()}-assistant`,
           role: 'assistant',
-          text: body.message ?? 'Refinement applied.',
+          text: 'Refinement applied.',
           timestamp: new Date().toISOString()
         }
       ]);

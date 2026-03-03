@@ -1,0 +1,131 @@
+{
+  "id": "nil-foundations",
+  "label": "NIL Financial Foundations (Sample)",
+  "meta": {
+    "audience": "Student-athletes earning NIL income",
+    "tone": "Direct, practical, steady, non-hype",
+    "titleStyle": "Clear, plain-language, Title Case",
+    "descriptionStyle": "1–2 sentences, practical framing, no fluff",
+    "targetDescriptionLengthWords": {
+      "min": 18,
+      "max": 35
+    }
+  },
+  "categories": [
+    {
+      "name": "Foundations",
+      "items": [
+        {
+          "title": "Banking for NIL – Checking, Savings, and Payments",
+          "description": "Banking systems play a critical role in managing NIL income effectively. Separating checking and savings accounts creates clarity, reduces errors, and supports disciplined habits."
+        },
+        {
+          "title": "What Is Income? Understanding NIL Payments and Revenue",
+          "description": "Income within NIL includes both cash and non-cash compensation tied to brand use and services. Clear definitions establish why accurate tracking and reporting matter from the start."
+        },
+        {
+          "title": "Creating a Budget with Variable NIL Income",
+          "description": "Budgeting provides structure when income fluctuates from month to month. Planning techniques reduce financial pressure and help stabilize spending during uneven earning periods."
+        },
+        {
+          "title": "Understanding NIL Rights and Responsibilities",
+          "description": "NIL agreements involve defined roles, expectations, and obligations. Understanding these responsibilities protects athletes from confusion, misuse, and compliance issues."
+        },
+        {
+          "title": "Avoiding Lifestyle Creep and Overspending",
+          "description": "Spending often increases as income rises, creating hidden financial risk. Awareness and discipline help protect progress and prevent long-term instability."
+        },
+        {
+          "title": "Building an Emergency Fund as a NIL Athlete",
+          "description": "Emergency savings provide protection when income slows or unexpected expenses arise. Consistent contributions build financial stability and reduce reliance on debt."
+        },
+        {
+          "title": "Saving and Investing NIL Income",
+          "description": "Saving provides stability while investing supports long-term growth. Early habits and consistency compound results over time."
+        },
+        {
+          "title": "Understanding Credit Scores and Reports",
+          "description": "Knowing your credit score and why it matters is an important part of building your NIL career. Learn how credit scores work."
+        },
+        {
+          "title": "Using Credit Responsibly as a NIL Athlete",
+          "description": "Credit decisions affect borrowing costs, flexibility, and opportunity. Responsible use strengthens financial standing while misuse creates lasting consequences."
+        }
+      ]
+    },
+    {
+      "name": "Protection and Compliance",
+      "items": [
+        {
+          "title": "Understanding NIL Contracts and Agreements",
+          "description": "NIL contracts define payment terms, usage rights, and long-term obligations. Understanding key clauses protects flexibility, income potential, and brand value."
+        },
+        {
+          "title": "Understanding Taxes on NIL Income",
+          "description": "Most NIL income carries tax responsibility, often without automatic withholding. Early awareness and planning protect earnings and prevent unexpected tax consequences."
+        },
+        {
+          "title": "Filing Taxes as a NIL Earning Athlete",
+          "description": "Filing requirements for NIL income include specific forms, deadlines, and documentation. Preparation and accuracy reduce stress, penalties, and compliance issues."
+        },
+        {
+          "title": "NIL and Taxes: Understanding Withholding, Forms, and Filing",
+          "description": "Taxes can create stress if not handled correctly. Practical preparation reduces financial strain during tax season."
+        },
+        {
+          "title": "Avoiding Scams and NIL Fraud",
+          "description": "Learn what steps to take in order to protect yourself from NIL fraud."
+        },
+        {
+          "title": "Protecting Your Identity and Financial Information",
+          "description": "Increased visibility attracts fraud and impersonation attempts. Verification and caution protect finances, identity, and reputation."
+        },
+        {
+          "title": "Insurance for NIL Activities",
+          "description": "NIL activities increase exposure to financial and legal risk. Insurance coverage helps protect income, reputation, and earning ability when unexpected events occur."
+        }
+      ]
+    },
+    {
+      "name": "Planning and Growth",
+      "items": [
+        {
+          "title": "Planning College Expenses with NIL Income",
+          "description": "Be prepared for college expenses. Learn how to use NIL income strategically to cover costs."
+        },
+        {
+          "title": "Budgeting for Offseason and Postseason Needs",
+          "description": "NIL income is variable. Athletes face seasons with higher and lower earnings. Budgeting for lower-income periods protects long-term stability."
+        },
+        {
+          "title": "Setting Short-Term and Long-Term Financial Goals",
+          "description": "Learn how to maximize NIL income by setting and pursuing short-term and long-term financial goals."
+        },
+        {
+          "title": "Managing Money in Public NIL, Social Media, and Personal Branding",
+          "description": "NIL athletes should consider the implications of what they post on social media as they manage their money in public."
+        },
+        {
+          "title": "The Business of Being a Student-Athlete: LLCs, Invoicing, and Recordkeeping",
+          "description": "Learn how to treat your NIL deal like a small business and organize your financial future."
+        },
+        {
+          "title": "Entrepreneurship and NIL: Turning Influence into a Business",
+          "description": "Earning potential is shaped by perception, consistency, and values. Learn how to turn NIL influence into a lasting business opportunity."
+        },
+        {
+          "title": "Giving Back: Philanthropy, Volunteering, and Community Impact",
+          "description": "NIL athletes carry responsibility in how they give back and use their finances to help others."
+        },
+        {
+          "title": "Avoiding Lifestyle Inflation and Peer Pressure Spending",
+          "description": "Greater income increases temptation toward lifestyle inflation. Discipline prevents overspending and long-term instability."
+        },
+        {
+          "title": "Budgeting for Milestones: Graduation, Pro Leagues, or Life After College",
+          "description": "Develop a financial plan that prepares you for life beyond current earnings. Income alone does not guarantee long-term security."
+        }
+      ]
+    }
+  ]
+}

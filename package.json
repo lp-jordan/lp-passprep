@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test lib/passprep/core.test.ts"
+    "test": "tsx --test lib/passprep/*.test.ts"
   },
   "engines": {
     "node": ">=18"

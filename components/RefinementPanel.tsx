@@ -1,7 +1,7 @@
 'use client';
 
 import { FormEvent, KeyboardEvent } from 'react';
-import { RefinementMessage, RefinementMode, RefinementScope, TargetedScope } from '@/lib/passprep/refinement';
+import { RefinementMessage, RefinementScope, TargetedScope } from '@/lib/passprep/refinement';
 
 type RefinementPanelProps = {
   messages: RefinementMessage[];
@@ -61,58 +61,39 @@ export function RefinementPanel({
 
       <form className="refinement-controls" onSubmit={handleSubmit}>
         <label>
-          Mode
+          Scope
           <select
-            value={refinementScope.mode}
-            onChange={(event) =>
-              onScopeChange({ ...refinementScope, mode: event.target.value as RefinementMode, target: 'all' })
-            }
+            value={refinementScope.target}
+            onChange={(event) => onScopeChange({ ...refinementScope, target: event.target.value as TargetedScope })}
           >
-            <option value="global">global</option>
-            <option value="targeted">targeted</option>
+            <option value="all">all</option>
+            <option value="categoryId">categoryId</option>
+            <option value="videoIds">videoIds</option>
           </select>
         </label>
 
-        {refinementScope.mode === 'targeted' ? (
-          <>
-            <label>
-              Scope
-              <select
-                value={refinementScope.target}
-                onChange={(event) => onScopeChange({ ...refinementScope, target: event.target.value as TargetedScope })}
-              >
-                <option value="all">all</option>
-                <option value="categoryId">categoryId</option>
-                <option value="videoIds">videoIds</option>
-                <option value="descriptions-only">descriptions-only</option>
-                <option value="titles-only">titles-only</option>
-              </select>
-            </label>
+        {refinementScope.target === 'categoryId' ? (
+          <label>
+            Category ID
+            <input
+              type="text"
+              value={refinementScope.categoryId}
+              onChange={(event) => onScopeChange({ ...refinementScope, categoryId: event.target.value })}
+              placeholder="module id"
+            />
+          </label>
+        ) : null}
 
-            {refinementScope.target === 'categoryId' ? (
-              <label>
-                Category ID
-                <input
-                  type="text"
-                  value={refinementScope.categoryId}
-                  onChange={(event) => onScopeChange({ ...refinementScope, categoryId: event.target.value })}
-                  placeholder="module id"
-                />
-              </label>
-            ) : null}
-
-            {refinementScope.target === 'videoIds' ? (
-              <label>
-                Video IDs (comma-separated)
-                <input
-                  type="text"
-                  value={refinementScope.videoIds}
-                  onChange={(event) => onScopeChange({ ...refinementScope, videoIds: event.target.value })}
-                  placeholder="vid-1,vid-2"
-                />
-              </label>
-            ) : null}
-          </>
+        {refinementScope.target === 'videoIds' ? (
+          <label>
+            Video IDs (comma-separated)
+            <input
+              type="text"
+              value={refinementScope.videoIds}
+              onChange={(event) => onScopeChange({ ...refinementScope, videoIds: event.target.value })}
+              placeholder="vid-1,vid-2"
+            />
+          </label>
         ) : null}
 
         <label>

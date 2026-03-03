@@ -1,8 +1,6 @@
-export type RefinementMode = 'global' | 'targeted';
-export type TargetedScope = 'all' | 'categoryId' | 'videoIds' | 'descriptions-only' | 'titles-only';
+export type TargetedScope = 'all' | 'categoryId' | 'videoIds';
 
 export type RefinementScope = {
-  mode: RefinementMode;
   target: TargetedScope;
   categoryId: string;
   videoIds: string;

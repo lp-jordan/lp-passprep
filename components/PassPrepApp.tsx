@@ -16,6 +16,8 @@ import {
 } from '@/lib/passprep/core';
 import { PipelineStage, RunRecord } from '@/lib/passprep/run-model';
 import { TilePreview } from '@/components/TilePreview';
+import { RefinementPanel } from '@/components/RefinementPanel';
+import { RefinementMessage, RefinementScope } from '@/lib/passprep/refinement';
 
 const defaultSettings: Settings = {
   categoryCount: 4,
@@ -41,6 +43,16 @@ export function PassPrepApp() {
   const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
   const [draggingVideo, setDraggingVideo] = useState<{ moduleIndex: number; videoIndex: number } | null>(null);
   const [expandedDescriptions, setExpandedDescriptions] = useState<Record<string, boolean>>({});
+  const [chatMessages, setChatMessages] = useState<RefinementMessage[]>([]);
+  const [pendingInstruction, setPendingInstruction] = useState('');
+  const [refinementScope, setRefinementScope] = useState<RefinementScope>({
+    mode: 'global',
+    target: 'all',
+    categoryId: '',
+    videoIds: ''
+  });
+  const [isRefining, setIsRefining] = useState(false);
+  const [refinementError, setRefinementError] = useState<string | null>(null);
 
   const canGeneratePlan = Boolean(validationReport?.valid && uploadedProject && run);
 
@@ -229,6 +241,68 @@ export function PassPrepApp() {
     target.style.height = `${target.scrollHeight}px`;
   }
 
+  async function submitRefinement() {
+    if (!courseState || !pendingInstruction.trim() || isRefining) return;
+
+    const userMessage: RefinementMessage = {
+      id: `${Date.now()}-user`,
+      role: 'user',
+      text: pendingInstruction.trim(),
+      timestamp: new Date().toISOString()
+    };
+
+    setChatMessages((prev) => [...prev, userMessage]);
+    setRefinementError(null);
+    setIsRefining(true);
+
+    try {
+      const response = await fetch('/api/refine', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          instruction: pendingInstruction.trim(),
+          scope: refinementScope,
+          courseState
+        })
+      });
+
+      const body = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        message?: string;
+        courseState?: CourseState;
+      };
+      if (!response.ok || !body.courseState) {
+        throw new Error(body.error ?? 'Unable to refine content');
+      }
+
+      setCourseState(body.courseState);
+      setPendingInstruction('');
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          id: `${Date.now()}-assistant`,
+          role: 'assistant',
+          text: body.message ?? 'Refinement applied.',
+          timestamp: new Date().toISOString()
+        }
+      ]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unexpected refinement error';
+      setRefinementError(message);
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          id: `${Date.now()}-error`,
+          role: 'error',
+          text: message,
+          timestamp: new Date().toISOString()
+        }
+      ]);
+    } finally {
+      setIsRefining(false);
+    }
+  }
+
 
   async function approvePlan() {
     if (!courseState || !run) return;
@@ -274,10 +348,11 @@ export function PassPrepApp() {
   }
 
   return (
-    <main className="container">
-      <h1>Pass Prep</h1>
-      <p className="subhead">Build and validate your course plan with a guided workflow.</p>
-      {run ? <p className="helper">Run ID: {run.id}</p> : null}
+    <main className="container app-shell">
+      <section className="workflow-column">
+        <h1>Pass Prep</h1>
+        <p className="subhead">Build and validate your course plan with a guided workflow.</p>
+        {run ? <p className="helper">Run ID: {run.id}</p> : null}
 
       <nav className="stepper" aria-label="Workflow progress">
         {steps.map((step, index) => {
@@ -291,7 +366,7 @@ export function PassPrepApp() {
         })}
       </nav>
 
-      <section className="card">
+        <section className="card">
         <h2>Import Project</h2>
         <p className="helper">Upload a project JSON file to begin.</p>
         <label
@@ -328,9 +403,9 @@ export function PassPrepApp() {
             <p className="helper">No file uploaded yet.</p>
           )}
         </div>
-      </section>
+        </section>
 
-      <section className="card">
+        <section className="card">
         <h2>Pre-Flight Settings</h2>
         <p className="helper">Define how the course structure should be generated.</p>
         <div className="grid four-up">
@@ -395,9 +470,9 @@ export function PassPrepApp() {
             Generate Course Plan
           </button>
         </div>
-      </section>
+        </section>
 
-      <section className="card">
+        <section className="card">
         <h2>Pass Preview</h2>
         {courseState ? (
           <div className="review-area">
@@ -523,26 +598,26 @@ export function PassPrepApp() {
             </button>
           </div>
         )}
-      </section>
+        </section>
 
-      <section className="card secondary">
+        <section className="card secondary">
         <h2>Workbook Draft</h2>
         <p className="helper">Generate a structured markdown workbook draft from the approved plan.</p>
         <div className="helper">{workbookStatus}</div>
-      </section>
+        </section>
 
-      {courseState ? (
-        <div className="sticky-action-bar">
-          <button className="btn primary" onClick={approvePlan}>
-            Approve Plan
-          </button>
-          <button className="btn" disabled={!uploadedProject} onClick={generateWorkbookDraft}>
-            Generate Workbook
-          </button>
-        </div>
-      ) : null}
+        {courseState ? (
+          <div className="sticky-action-bar">
+            <button className="btn primary" onClick={approvePlan}>
+              Approve Plan
+            </button>
+            <button className="btn" disabled={!uploadedProject} onClick={generateWorkbookDraft}>
+              Generate Workbook
+            </button>
+          </div>
+        ) : null}
 
-      <section className="card">
+        <section className="card">
         <h2>Export</h2>
         <div className="actions">
           <button
@@ -567,7 +642,21 @@ export function PassPrepApp() {
             Export Workbook Draft (.md)
           </button>
         </div>
+        </section>
       </section>
+
+      <div className="refinement-region">
+        <RefinementPanel
+          messages={chatMessages}
+          pendingInstruction={pendingInstruction}
+          refinementScope={refinementScope}
+          isRefining={isRefining}
+          error={refinementError}
+          onInstructionChange={setPendingInstruction}
+          onScopeChange={setRefinementScope}
+          onSubmit={submitRefinement}
+        />
+      </div>
     </main>
   );
 }
